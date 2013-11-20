@@ -26,24 +26,30 @@
 
         <Button
             android:id="@+id/advertise_btn"
-            android:layout_width="96dp"
+            android:layout_width="74dp"
             android:layout_height="64dp"
             android:onClick="clickAdvertise"
             android:text="@string/register" />
 
         <Button
             android:id="@+id/discover_btn"
-            android:layout_width="96dp"
+            android:layout_width="74dp"
             android:layout_height="64dp"
             android:onClick="clickDiscover"
             android:text="@string/discover" />
 
         <Button
             android:id="@+id/connect_btn"
-            android:layout_width="96dp"
+            android:layout_width="74dp"
             android:layout_height="64dp"
             android:onClick="clickConnect"
             android:text="@string/connect" />
+        <Button
+            android:id="@+id/disconnect_btn"
+            android:layout_width="74dp"
+            android:layout_height="64dp"
+            android:onClick="clickDisconnect"
+            android:text="@string/disconnect" />
     </LinearLayout>
 
     <TextView

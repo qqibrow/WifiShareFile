@@ -84,6 +84,15 @@ public class NsdChatActivity extends Activity {
             Log.d(TAG, "No service to connect to!");
         }
     }
+    
+    public void clickDisconnect(View w) {
+    	try{
+	        mNsdHelper.tearDown();
+    	}
+    	catch(Exception e){
+    		Log.d(TAG,e.getStackTrace().toString());
+    	}
+    }
 
     public void clickSend(View v) {
         EditText messageView = (EditText) this.findViewById(R.id.chatInput);

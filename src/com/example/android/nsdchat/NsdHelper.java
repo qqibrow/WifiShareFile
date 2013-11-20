@@ -45,7 +45,7 @@ public class NsdHelper {
 
     public NsdHelper(Context context) {
         mContext = context;
-        mServiceType = "LU_NIU";
+        mServiceType = "DCPOWER";
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
         mServiceName = android.os.Build.MODEL + mServiceType;
     }
