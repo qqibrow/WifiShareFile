@@ -48,6 +48,7 @@ public class NsdHelper {
 
     public NsdHelper(Context context) {
         mContext = context;
+
         mServiceType = "LU_NIU";
         nameGenerator = new ServiceNameGenerator(mServiceType);
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
