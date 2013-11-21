@@ -33,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -324,10 +325,11 @@ public class ChatConnection {
         				'/' + DIRECTORY + '/' + file_name);
         		
         		OutputStream os = socket.getOutputStream();
-        		DataOutputStream socket_data_os = new DataOutputStream(os);   
-        		
+        		DataOutputStream socket_data_os = new DataOutputStream(os);  
+        
         		byte[] buffer = new byte[8 * 1024];
         		socket_data_os.writeUTF(file.getName());
+        	
         		socket_data_os.flush();
         		
         		long file_length = (long)file.length();

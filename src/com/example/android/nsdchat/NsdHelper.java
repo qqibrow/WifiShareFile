@@ -23,13 +23,16 @@ import java.util.List;
 import android.content.Context;
 import android.net.nsd.NsdServiceInfo;
 import android.net.nsd.NsdManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.util.Log;
-
 public class NsdHelper {
 
+	private ServiceNameGenerator nameGenerator;
     Context mContext;
     
     List<NsdServiceInfo> mDiscoveredServices = new ArrayList<NsdServiceInfo>();
+    
     NsdManager mNsdManager;
     NsdManager.ResolveListener mResolveListener;
     NsdManager.DiscoveryListener mDiscoveryListener;
@@ -46,8 +49,14 @@ public class NsdHelper {
     public NsdHelper(Context context) {
         mContext = context;
         mServiceType = "LU_NIU";
+        nameGenerator = new ServiceNameGenerator(mServiceType);
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
-        mServiceName = android.os.Build.MODEL + mServiceType;
+        
+    	WifiManager wifiMan = (WifiManager) mContext.getSystemService(
+                Context.WIFI_SERVICE);
+    	WifiInfo wifiInf = wifiMan.getConnectionInfo();
+    	String macAddr = wifiInf.getMacAddress();
+        mServiceName = macAddr + mServiceType;
     }
     
     
@@ -82,7 +91,7 @@ public class NsdHelper {
                     Log.d(TAG, "Unknown Service Type: " + service.getServiceType());
                 }
                  else if (!service.getServiceName().equals(mServiceName) &&
-                		 service.getServiceName().contains(mServiceType)){
+                		 nameGenerator.matchPattern(mServiceType)){
                     mNsdManager.resolveService(service, mResolveListener);
                 }
             }
