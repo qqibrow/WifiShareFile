@@ -79,7 +79,7 @@ public class ProtocolPackage {
 	}
 	
 	public String getFile_name() {
-		return file_name;
+		return removeExtension(file_name);
 	}
 
 	public void setFile_name(String file_name) {
@@ -103,5 +103,26 @@ public class ProtocolPackage {
 		setFile_length(other.file_length);
 		this.type = other.type;
 		this.sender = other.sender;
+	}
+	
+	private String removeExtension(String s) {
+
+	    String separator = System.getProperty("file.separator");
+	    String filename;
+
+	    // Remove the path upto the filename.
+	    int lastSeparatorIndex = s.lastIndexOf(separator);
+	    if (lastSeparatorIndex == -1) {
+	        filename = s;
+	    } else {
+	        filename = s.substring(lastSeparatorIndex + 1);
+	    }
+
+	    // Remove the extension.
+	    int extensionIndex = filename.lastIndexOf(".");
+	    if (extensionIndex == -1)
+	        return filename;
+
+	    return filename.substring(0, extensionIndex);
 	}
 }

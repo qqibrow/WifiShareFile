@@ -5,9 +5,12 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import android.util.Log;
@@ -51,57 +54,92 @@ public class PackageHandler {
 			break;
 		case SEND_META:
 			// Receive the meta file and then calculate the difference and then send file.
-			String name = transferDirectory + "/" + p.getSender() + ".dat";
-			File other_meta_file = new File(name);
 			try {
 				// Read and store other meta file.
 				InputStream in = mSocket.getInputStream();
-				FileOutputStream file_os = new FileOutputStream(other_meta_file);
-		    	DataOutputStream file_data_os = new DataOutputStream(file_os);
-		    	
         		DataInputStream socket_in = new DataInputStream(in);         
         		long byteCount = socket_in.readLong();
         		byte[] buf;
         		if(byteCount == p.getFile_length()){
 					// read metadata
 					buf = new byte[(int) byteCount];
-					// while(dis.available() < byteCount){} //
-					// wait until full file arrive
-					int bytesRead = 0;
-					while (bytesRead < byteCount) {
-						bytesRead += in.read(buf,
-								bytesRead, buf.length - bytesRead);
+					int bytesRead = in.read(buf, 0, buf.length);
+					if(bytesRead != buf.length) {
+						throw new Exception("The length readed is not equal to the actual file length.");
 					}
-        		}
+					Log.v("RECEIVE_META_FILE", buf.toString());	
+        		}        		
         		else{
         			throw new Exception ("corrupted file");
         		}
-        		//readFromStream(file_data_os, socket_in, p.getFile_length());
-        		//file_data_os.close();
-				
-        		// Calculate the delta from local meta file and other meta file.
-        		String this_meta_path = "xxx";
-        		File this_meta_file = new File(this_meta_path);
-        		List<String> list = getDelta(this_meta_file, other_meta_file);  		
-        			
-        		// Find those files and then send those files through socket.
-        		//For()
         		
+        		
+        		// (TODO)Calculate the delta from local meta file and other meta file.
+        			
+        		// (TODO)Find those files and then send those files through socket.
+   		
 			}catch(Exception e) {
 				e.printStackTrace();
 			}	
 			
 		case SEND_FILE:
-			// 
+			// Just receive the file and store the file in (trasferDirectory + phoneId) directory.
+			File local_dir = new File(transferDirectory + '/' + p.getSender());
+			if(!local_dir.exists()) {
+				local_dir.mkdir();
+			}
+			File new_file = new File(local_dir, p.getFile_name());
+			try {
+				DataInputStream in = new DataInputStream(mSocket.getInputStream());
+				DataOutputStream out = new DataOutputStream(new FileOutputStream(new_file));
+				writeToStream(out, in);
+				out.close();
+				
+			}catch(Exception e) {
+				e.printStackTrace();
+			}		
 			break;
 		}
 	}
 	
-	private List<String> getDelta(File this_meta_file, File other_meta_file) {
-		//TODO(Minh)
-		// look at PifiMobile/edu.isi.usaid.pifi.services/FileUtil.java/getDelta
-		return null;
-	}
+//	private List<String> getDelta(byte[] bytes, File metaFile){
+//		// TODO This code runs a risk of running into exception if the meta data
+//		// file size is too big. Needs to fix this issue later on
+//		List<Video> sendTo = new List<Video>();
+//		FileInputStream fin = new FileInputStream(metaFile);
+//		
+//		//create copies of actual list
+//		for(Video vid : Videos.parseFrom(fin).getVideoList()){
+//			sendTo.add(vid);
+//		}
+//		fin.close();
+//		
+//		List<Video> recv = new ArrayList<Video>();
+//		for(Video vid : Videos.parseFrom(bytes).getVideoList()){
+//			recv.add(vid);
+//		}
+//		
+//		fin = new FileInputStream(metaFile);
+//		Iterator<Video> local = Videos.parseFrom(fin).getVideoList().iterator();
+//		fin.close();
+//
+//		// for each local entry
+//		while (local.hasNext()) {
+//			Iterator<Video> remote = Videos.parseFrom(bytes).getVideoList().iterator();
+//			Video v = local.next();
+//			// for each remote entry
+//			while (remote.hasNext()) {
+//				Video rem = remote.next();
+//				// if local entry matches remote entry
+//				if (v.getFilename().equals(rem.getFilename())) {
+//					sendTo.remove(v);
+//					recv.remove(rem);
+//				}
+//			}
+//		}
+//		return sendTo;
+//	}
+	
 	private void writeToStream(DataOutputStream out, DataInputStream in) {
 		int readed = 0;
 		try {			
