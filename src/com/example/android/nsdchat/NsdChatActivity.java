@@ -16,6 +16,13 @@
 
 package com.example.android.nsdchat;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
 import android.app.Activity;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
@@ -38,7 +45,10 @@ public class NsdChatActivity extends Activity {
     public static final String TAG = "NsdChat";
 
     ChatConnection mConnection;
-
+    
+    private int QUEUE_CAPACITY = 100;
+    private BlockingQueue<NsdServiceInfo> queue = new ArrayBlockingQueue<NsdServiceInfo>(QUEUE_CAPACITY);
+    RequestMetaThread request_meta_thread;
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,7 +66,10 @@ public class NsdChatActivity extends Activity {
 
         mConnection = new ChatConnection(mUpdateHandler);
 
-        mNsdHelper = new NsdHelper(this);
+        mNsdHelper = new NsdHelper(this, queue);
+        request_meta_thread = new RequestMetaThread(queue);
+        request_meta_thread.run();
+        
         mNsdHelper.initializeNsd();
 
     }
@@ -75,14 +88,6 @@ public class NsdChatActivity extends Activity {
     }
 
     public void clickConnect(View v) {
-        NsdServiceInfo service = mNsdHelper.getChosenServiceInfo();
-        if (service != null) {
-            Log.d(TAG, "Connecting.");
-            mConnection.connectToServer(service.getHost(),
-                    service.getPort());
-        } else {
-            Log.d(TAG, "No service to connect to!");
-        }
     }
     
     public void clickDisconnect(View w) {
@@ -132,4 +137,52 @@ public class NsdChatActivity extends Activity {
         mConnection.tearDown();
         super.onDestroy();
     }
+    
+    class RequestMetaThread implements Runnable {
+
+        BlockingQueue<NsdServiceInfo> queue;
+        private Socket mSocket;
+        
+        public RequestMetaThread(BlockingQueue<NsdServiceInfo> queue) {
+            this.queue = queue;
+        }
+        
+        private synchronized void setSocket(Socket socket) {
+            Log.d(TAG, "setSocket being called.");
+            if (socket == null) {
+                Log.d(TAG, "Setting a null socket.");
+            }
+            if (mSocket != null) {
+                if (mSocket.isConnected()) {
+                    try {
+                        mSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            mSocket = socket;
+        }
+        private Socket getSocket() {
+            return mSocket;
+        }       
+
+        @Override
+        public void run() {
+        	while(true) {
+        		try {
+        			NsdServiceInfo next_device = queue.take();
+            		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
+            		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.SEND_META, 
+            				mNsdHelper.getSelfName());
+            		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
+            		// TODO need to close the socket?
+            		mSocket.close();           		
+        		}catch(Exception e) {
+        			e.printStackTrace();
+        		}       		  		
+        	}
+        }
+    }
+    
 }

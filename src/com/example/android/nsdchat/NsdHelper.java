@@ -41,7 +41,7 @@ public class NsdHelper {
     public static final String TAG = "NsdHelper";
     public String mServiceType;
     public String mServiceName;
-    
+    private String selfName;
     private BlockingQueue<NsdServiceInfo> queue = null;
     
     
@@ -55,10 +55,13 @@ public class NsdHelper {
     	WifiManager wifiMan = (WifiManager) mContext.getSystemService(
                 Context.WIFI_SERVICE);
     	WifiInfo wifiInf = wifiMan.getConnectionInfo();
-    	String macAddr = wifiInf.getMacAddress();
-        mServiceName = macAddr + mServiceType;
+    	selfName = wifiInf.getMacAddress();
+        mServiceName = selfName + mServiceType;
     }   
     
+    public String getSelfName() {
+    	return selfName;
+    }
     public void initializeNsd() {
         initializeResolveListener();
         initializeDiscoveryListener();
