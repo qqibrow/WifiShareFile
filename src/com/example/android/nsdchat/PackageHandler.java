@@ -15,19 +15,13 @@ import java.util.List;
 
 import android.util.Log;
 
-public class PackageHandler {
-	
+public class PackageHandler {	
 	private Socket mSocket;
 	private String metaPath;
 	private String transferDirectory;
 	private String sender;
 	
 	byte[] buffer = new byte[8 * 1024];
-	
-	void setSocket(Socket socket) {
-		mSocket = socket;
-	}
-	
 	
 	public void handlePackage(ProtocolPackage p) {
 		switch(p.getType()) {
@@ -171,7 +165,27 @@ public class PackageHandler {
 		return metaPath;
 	}
 
-
+	 public synchronized void setSocket(Socket socket) {
+         Log.d("PackageHandler", "setSocket being called.");
+         if (socket == null) {
+             Log.d("PackageHandler", "Setting a null socket.");
+         }
+         if (mSocket != null) {
+             if (mSocket.isConnected()) {
+                 try {
+                     mSocket.close();
+                 } catch (IOException e) {
+                     e.printStackTrace();
+                 }
+             }
+         }
+         mSocket = socket;
+     }
+	
+	public void setSender(String sender) {
+		this.sender = sender;
+	}
+	
 	public void setMetaPath(String metaPath) {
 		this.metaPath = metaPath;
 	}

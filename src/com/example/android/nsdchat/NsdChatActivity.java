@@ -138,9 +138,36 @@ public class NsdChatActivity extends Activity {
         super.onDestroy();
     }
     
+    class PackageHandlerThread implements Runnable {   	
+    	private Socket mSocket;
+    	private String metaPath;
+    	private String transferDirectory;
+    	private String selfName;
+    	public PackageHandlerThread(Socket socket, String metaPath, String transferDirectory, String selfName) {
+    		this.mSocket = socket;
+    		this.metaPath = metaPath;
+    		this.selfName = selfName;
+    		this.transferDirectory = transferDirectory;
+    	}
+    	
+    	public void run() {
+    		PackageHandler pHandler = new PackageHandler();
+    		pHandler.setSocket(mSocket);
+    		pHandler.setMetaPath(metaPath);
+    		pHandler.setTransferDirectory(transferDirectory);
+    		pHandler.setSender(selfName);
+    		try {
+    			ProtocolPackage p = ProtocolPackage.receivePackage(mSocket.getInputStream());
+    			pHandler.handlePackage(p); 	
+    		}catch(Exception e) {
+    			e.printStackTrace();
+    		}   		    			
+    	}
+    }
+    
     class RequestMetaThread implements Runnable {
 
-        BlockingQueue<NsdServiceInfo> queue;
+        private BlockingQueue<NsdServiceInfo> queue;
         private Socket mSocket;
         
         public RequestMetaThread(BlockingQueue<NsdServiceInfo> queue) {

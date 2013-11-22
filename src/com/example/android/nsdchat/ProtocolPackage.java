@@ -67,7 +67,7 @@ public class ProtocolPackage {
 	
 	}
 	
-	public ProtocolPackage receivePackage(InputStream in) {
+	public  static ProtocolPackage receivePackage(InputStream in) {
 		try {
 			ObjectInputStream obj_in = new ObjectInputStream(in);
 			ProtocolPackage other = (ProtocolPackage)obj_in.readObject();
