@@ -94,7 +94,7 @@ public class NsdHelper {
             	Log.d(TAG, "Service discovery success\n" + service);
             	String full_service_name = service.getServiceName();
             	if(full_service_name == mServiceName) {
-            		Log.v(TAG, "not add myself in the list.");
+            		Log.v(TAG, "Service name equals to self service name. Won't add it to hashmap.");
             		return;
             	}
             	String device_name = getDeviceNameFromService(service);

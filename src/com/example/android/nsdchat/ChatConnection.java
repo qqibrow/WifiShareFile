@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// NOT USED NOW
+
+
 package com.example.android.nsdchat;
 
 import android.os.Bundle;

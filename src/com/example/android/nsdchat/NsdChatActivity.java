@@ -19,13 +19,16 @@ package com.example.android.nsdchat;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import android.app.Activity;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -44,11 +47,11 @@ public class NsdChatActivity extends Activity {
 
     public static final String TAG = "NsdChat";
 
-    ChatConnection mConnection;
     
     private int QUEUE_CAPACITY = 100;
     private BlockingQueue<NsdServiceInfo> queue = new ArrayBlockingQueue<NsdServiceInfo>(QUEUE_CAPACITY);
     RequestMetaThread request_meta_thread;
+    ServerPackageThread serverthread;
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -63,12 +66,12 @@ public class NsdChatActivity extends Activity {
                 addChatLine(chatLine);
             }
         };
-
-        mConnection = new ChatConnection(mUpdateHandler);
-
-        mNsdHelper = new NsdHelper(this, queue);
+        mNsdHelper = new NsdHelper(this, queue);      
         request_meta_thread = new RequestMetaThread(queue);
         request_meta_thread.run();
+        
+        serverthread = new ServerPackageThread();
+        serverthread.run();
         
         mNsdHelper.initializeNsd();
 
@@ -76,8 +79,8 @@ public class NsdChatActivity extends Activity {
 
     public void clickAdvertise(View v) {
         // Register service
-        if(mConnection.getLocalPort() > -1) {
-            mNsdHelper.registerService(mConnection.getLocalPort());
+        if(serverthread.getPort() > -1) {
+            mNsdHelper.registerService(serverthread.getPort());
         } else {
             Log.d(TAG, "ServerSocket isn't bound.");
         }
@@ -88,6 +91,7 @@ public class NsdChatActivity extends Activity {
     }
 
     public void clickConnect(View v) {
+    	Log.v("clickConnect", "Do nothing here");
     }
     
     public void clickDisconnect(View w) {
@@ -100,18 +104,11 @@ public class NsdChatActivity extends Activity {
     }
 
     public void clickSend(View v) {
-        EditText messageView = (EditText) this.findViewById(R.id.chatInput);
-        if (messageView != null) {
-            String messageString = messageView.getText().toString();
-            if (!messageString.isEmpty()) {
-                mConnection.sendMessage(messageString);
-            }
-            messageView.setText("");
-        }
+    	Log.v("clickSend", "Do nothing here");
     }
 
     public void addChatLine(String line) {
-        mStatusView.append("\n" + line);
+    	Log.v("addchatLine", "Do nothing here");
     }
 
     @Override
@@ -134,35 +131,75 @@ public class NsdChatActivity extends Activity {
     protected void onDestroy() {
     	Log.v(TAG, "on destroy");
         mNsdHelper.tearDown();
-        mConnection.tearDown();
         super.onDestroy();
     }
     
     class PackageHandlerThread implements Runnable {   	
     	private Socket mSocket;
-    	private String metaPath;
-    	private String transferDirectory;
-    	private String selfName;
-    	public PackageHandlerThread(Socket socket, String metaPath, String transferDirectory, String selfName) {
+    	public PackageHandlerThread(Socket socket) {
     		this.mSocket = socket;
-    		this.metaPath = metaPath;
-    		this.selfName = selfName;
-    		this.transferDirectory = transferDirectory;
-    	}
-    	
+    	} 	
     	public void run() {
-    		PackageHandler pHandler = new PackageHandler();
-    		pHandler.setSocket(mSocket);
-    		pHandler.setMetaPath(metaPath);
-    		pHandler.setTransferDirectory(transferDirectory);
-    		pHandler.setSender(selfName);
     		try {
     			ProtocolPackage p = ProtocolPackage.receivePackage(mSocket.getInputStream());
-    			pHandler.handlePackage(p); 	
+    			PackageHandler pHandler = new PackageHandler();
+    			pHandler.setSocket(mSocket);   			
+    			String external = Environment.getExternalStorageDirectory().getPath();
+    			String metaPath = external + "/Pifitest/meta.dat";
+    			String transferDirectory = external + "Pifitest/" + p.getSender();
+    			String selfName = mNsdHelper.getSelfName();
+        		pHandler.setMetaPath(metaPath);
+        		pHandler.setTransferDirectory(transferDirectory);
+        		pHandler.setSender(selfName);
+    			pHandler.handlePackage(p);  			
     		}catch(Exception e) {
     			e.printStackTrace();
     		}   		    			
     	}
+    }
+    
+    protected void DiscoverDevices()
+    {
+            ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+            exec.scheduleAtFixedRate(new Runnable() {
+              @Override
+              public void run() {
+               mNsdHelper.discoverServices();
+              }
+            }, 0, 10, TimeUnit.SECONDS);
+    }
+    
+    class ServerPackageThread implements Runnable{
+        
+        private ServerSocket  mSocket;
+        
+        public int getPort() {
+        	if(mSocket == null)
+        		return -1;
+        	return mSocket.getLocalPort();
+        }
+        
+        public ServerPackageThread() {
+        	try {
+        		mSocket = new ServerSocket(0);
+        	}catch(IOException e) {
+        		Log.e(TAG, "Error creating ServerSocket", e);
+        		e.printStackTrace();
+        	}     	
+        }
+        
+        public void run() {
+        	while (!Thread.currentThread().isInterrupted()) {
+               try {
+				Socket connector = mSocket.accept();	
+				Runnable eventHandler = new PackageHandlerThread(connector);
+				eventHandler.run();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+               
+        	}
+        }
     }
     
     class RequestMetaThread implements Runnable {
