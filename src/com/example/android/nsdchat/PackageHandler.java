@@ -21,27 +21,34 @@ public class PackageHandler {
 	private String transferDirectory;
 	private String sender;
 	
+	private PifiFileManager filemanager;
+	
+	
 	byte[] buffer = new byte[8 * 1024];
+	
+	private void sendPackagedFile(File file, OutputStream out) {
+		long meta_file_length = file.length();
+		String meta_file_name = file.getName();
+		
+		ProtocolPackage send_meta = new ProtocolPackage(PackageType.SEND_META, 
+				sender, meta_file_name, meta_file_length);
+		try {
+			send_meta.sendPackage(out);
+			
+			FileInputStream fis = new FileInputStream(file.toString());			
+			writeToStream(new DataOutputStream(out), new DataInputStream(fis));
+			fis.close();
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+		}	
+	}	
 	
 	public void handlePackage(ProtocolPackage p) {
 		switch(p.getType()) {
 		case GET_META:
-			// Send meta package on receiver.
-			File metaFile = new File(metaPath);
-			long meta_file_length = metaFile.length();
-			String meta_file_name = metaFile.getName();
-			
-			ProtocolPackage send_meta = new ProtocolPackage(PackageType.SEND_META, 
-					sender, meta_file_name, meta_file_length);
 			try {
-				OutputStream out = mSocket.getOutputStream();
-				send_meta.sendPackage(out);
-				
-				FileInputStream fis = new FileInputStream(metaFile.toString());   
-        		DataInputStream fin = new DataInputStream(fis);   
-				writeToStream(new DataOutputStream(out), fin);
-				fin.close();
-				
+				sendPackagedFile(filemanager.getMataFile(), mSocket.getOutputStream());				
 			}catch(Exception e) {
 				e.printStackTrace();
 			}		
@@ -50,14 +57,13 @@ public class PackageHandler {
 			// Receive the meta file and then calculate the difference and then send file.
 			try {
 				// Read and store other meta file.
-				InputStream in = mSocket.getInputStream();
-        		DataInputStream socket_in = new DataInputStream(in);         
+        		DataInputStream socket_in = new DataInputStream(mSocket.getInputStream());         
         		long byteCount = socket_in.readLong();
         		byte[] buf;
         		if(byteCount == p.getFile_length()){
 					// read metadata
 					buf = new byte[(int) byteCount];
-					int bytesRead = in.read(buf, 0, buf.length);
+					int bytesRead = socket_in.read(buf, 0, buf.length);
 					if(bytesRead != buf.length) {
 						throw new Exception("The length readed is not equal to the actual file length.");
 					}
@@ -67,11 +73,17 @@ public class PackageHandler {
         			throw new Exception ("corrupted file");
         		}
         		
-        		
-        		// (TODO)Calculate the delta from local meta file and other meta file.
-        			
-        		// (TODO)Find those files and then send those files through socket.
-   		
+    			List<File> files = filemanager.getDelta(buf);
+    			
+    			for(File file : files) {
+    				OutputStream out = mSocket.getOutputStream();
+    				send_meta.sendPackage(out);
+    				
+    				FileInputStream fis = new FileInputStream(metaFile.toString());
+    				
+    				writeToStream(new DataOutputStream(out), new DataInputStream(fis));
+    				fis.close();	
+    			}				
 			}catch(Exception e) {
 				e.printStackTrace();
 			}	

@@ -10,20 +10,26 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 
-
-public class ProtocolPackage {	
+// Comparable<ProtocolPackage> interface is not necessary at this time.
+public class ProtocolPackage implements java.io.Serializable{	
 	private PackageType type;
 	private String sender;
 	private String file_name;
 	private long file_length;
 	
+	private static final long serialVersionUID = 7526472295622776147L;
+	
 	public ProtocolPackage() {
-		
+		sender = "";
+		file_name = "";
 	}
 	
 	public ProtocolPackage(PackageType type, String sender) {
+		super();
 		this.type = type;
 		this.sender = sender;
+		file_name = "";
+		//file_name = "EMPTYFILE";
 	}
 	
 	public ProtocolPackage(PackageType type, String sender, String file_name, long file_length){
@@ -124,5 +130,15 @@ public class ProtocolPackage {
 	        return filename;
 
 	    return filename.substring(0, extensionIndex);
+	}
+	
+	@Override
+	public boolean equals(Object other){
+		if (other == null) return false;
+	    if (other == this) return true;
+	    if (!(other instanceof ProtocolPackage))return false;
+	    ProtocolPackage otherpackage = (ProtocolPackage)other;
+		return type == otherpackage.type && sender.equals(otherpackage.sender) && 
+				file_name.equals(otherpackage.file_name) && file_length == otherpackage.file_length;
 	}
 }
