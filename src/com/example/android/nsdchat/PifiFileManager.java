@@ -17,6 +17,13 @@ public class PifiFileManager {
 	List<File> getDelta(byte[] otherMetaFile) {
 		return null;
 	}
+
+	public File getTransferDirectory(String sender) {
+//		if(!local_dir.exists()) {
+//			local_dir.mkdir();
+//		}
+		return null;
+	}
 	
 	
 }

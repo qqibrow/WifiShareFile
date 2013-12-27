@@ -26,6 +26,8 @@ public class PackageHandler {
 	
 	byte[] buffer = new byte[8 * 1024];
 	
+	// Warp the file as the send_meta package and output to OutputStream.
+	// the format of the package will be || packageheader | file ||.
 	private void sendPackagedFile(File file, OutputStream out) {
 		long meta_file_length = file.length();
 		String meta_file_name = file.getName();
@@ -33,8 +35,7 @@ public class PackageHandler {
 		ProtocolPackage send_meta = new ProtocolPackage(PackageType.SEND_META, 
 				sender, meta_file_name, meta_file_length);
 		try {
-			send_meta.sendPackage(out);
-			
+			send_meta.sendPackage(out);		
 			FileInputStream fis = new FileInputStream(file.toString());			
 			writeToStream(new DataOutputStream(out), new DataInputStream(fis));
 			fis.close();
@@ -70,19 +71,13 @@ public class PackageHandler {
 					Log.v("RECEIVE_META_FILE", buf.toString());	
         		}        		
         		else{
-        			throw new Exception ("corrupted file");
+        			throw new Exception ("Corrupted file.");
         		}
         		
     			List<File> files = filemanager.getDelta(buf);
     			
     			for(File file : files) {
-    				OutputStream out = mSocket.getOutputStream();
-    				send_meta.sendPackage(out);
-    				
-    				FileInputStream fis = new FileInputStream(metaFile.toString());
-    				
-    				writeToStream(new DataOutputStream(out), new DataInputStream(fis));
-    				fis.close();	
+    				sendPackagedFile(file, mSocket.getOutputStream());
     			}				
 			}catch(Exception e) {
 				e.printStackTrace();
@@ -90,10 +85,8 @@ public class PackageHandler {
 			
 		case SEND_FILE:
 			// Just receive the file and store the file in (trasferDirectory + phoneId) directory.
-			File local_dir = new File(transferDirectory + '/' + p.getSender());
-			if(!local_dir.exists()) {
-				local_dir.mkdir();
-			}
+			File local_dir = filemanager.getTransferDirectory(p.getSender());
+			assert(local_dir.exists());
 			File new_file = new File(local_dir, p.getFile_name());
 			try {
 				DataInputStream in = new DataInputStream(mSocket.getInputStream());

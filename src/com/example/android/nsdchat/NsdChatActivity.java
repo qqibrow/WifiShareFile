@@ -66,12 +66,15 @@ public class NsdChatActivity extends Activity {
                 addChatLine(chatLine);
             }
         };
+        
+        serverthread = new ServerPackageThread();
+        serverthread.run();
+        
         mNsdHelper = new NsdHelper(this, queue);      
         request_meta_thread = new RequestMetaThread(queue);
         request_meta_thread.run();
         
-        serverthread = new ServerPackageThread();
-        serverthread.run();
+        
         
         mNsdHelper.initializeNsd();
 
