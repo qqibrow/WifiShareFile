@@ -25,6 +25,7 @@ public class PackageHandler {
 	PackageHandler(Socket socket, String self_name) {
 		mSocket = socket;
 		sender = self_name;
+		filemanager = new PifiFileManager();
 		mThread = new Thread(new PackageHandlerThread());
 	}
 	

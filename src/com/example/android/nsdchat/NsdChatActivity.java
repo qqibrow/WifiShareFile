@@ -236,7 +236,7 @@ public class NsdChatActivity extends Activity {
                 				mNsdHelper.getSelfName());
                 		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
                 		// TODO need to close the socket?
-                		mSocket.close();           		
+                		//mSocket.close();           		
             		}catch(Exception e) {
             			e.printStackTrace();
             		}       		  		

@@ -12,7 +12,7 @@ public class PifiFileManager {
 	String meta_file_path;
 	
 	public PifiFileManager() {
-		this("Pifitest", "meta.dat");
+		this("Pifitest", "meta.txt");
 	}
 
 	public PifiFileManager(String approot, String metafilename) {
