@@ -75,15 +75,6 @@ public class NsdChatActivity extends Activity {
         mPackageServer = new PackageServer();
         mMetaRequester = new MetaRequester(queue);  
     }
-    
-    @Override
-	protected void onStart() {
-		super.onStart();
-		
-		//serverthread = new Thread(new ServerPackageThread()); 
-        //request_meta_thread.run();        
-	}
-
 
     public void clickAdvertise(View v) {
         // Register service
