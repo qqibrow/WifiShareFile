@@ -12,20 +12,37 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import android.util.Log;
 
 public class PackageHandler {	
 	private Socket mSocket;
-	private String metaPath;
-	private String transferDirectory;
 	private String sender;
-	
 	private PifiFileManager filemanager;
-	
+	private Thread mThread = null;
 	
 	byte[] buffer = new byte[8 * 1024];
 	
+	PackageHandler(Socket socket, String self_name) {
+		mSocket = socket;
+		sender = self_name;
+		mThread = new Thread(new PackageHandlerThread());
+	}
+	
+	public void handle() {
+		mThread.run();
+	}
+
+	class PackageHandlerThread implements Runnable {   	
+    	public void run() {
+    		try {
+    			ProtocolPackage p = ProtocolPackage.receivePackage(mSocket.getInputStream());
+    			handlePackage(p);  			
+    		}catch(Exception e) {
+    			e.printStackTrace();
+    		}   		    			
+    	}
+    }
+
 	// Warp the file as the send_meta package and output to OutputStream.
 	// the format of the package will be || packageheader | file ||.
 	private void sendPackagedFile(File file, OutputStream out) {
@@ -47,7 +64,7 @@ public class PackageHandler {
 	
 	public void handlePackage(ProtocolPackage p) {
 		switch(p.getType()) {
-		case GET_META:
+		case REQUEST_META:
 			try {
 				sendPackagedFile(filemanager.getMataFile(), mSocket.getOutputStream());				
 			}catch(Exception e) {
@@ -85,7 +102,7 @@ public class PackageHandler {
 			
 		case SEND_FILE:
 			// Just receive the file and store the file in (trasferDirectory + phoneId) directory.
-			File local_dir = filemanager.getTransferDirectory(p.getSender());
+			File local_dir = filemanager.getDeviceTempDirectory(p.getSender());
 			assert(local_dir.exists());
 			File new_file = new File(local_dir, p.getFile_name());
 			try {
@@ -165,10 +182,6 @@ public class PackageHandler {
 			e.printStackTrace();
 		}  
 	}
-	
-	public String getMetaPath() {
-		return metaPath;
-	}
 
 	 public synchronized void setSocket(Socket socket) {
          Log.d("PackageHandler", "setSocket being called.");
@@ -186,23 +199,4 @@ public class PackageHandler {
          }
          mSocket = socket;
      }
-	
-	public void setSender(String sender) {
-		this.sender = sender;
-	}
-	
-	public void setMetaPath(String metaPath) {
-		this.metaPath = metaPath;
-	}
-
-
-	public String getTransferDirectory() {
-		return transferDirectory;
-	}
-
-
-	public void setTransferDirectory(String transferDirectory) {
-		this.transferDirectory = transferDirectory;
-	}
-		
 }

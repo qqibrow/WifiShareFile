@@ -93,22 +93,22 @@ public class NsdHelper {
             public void onServiceFound(NsdServiceInfo service) {
             	Log.d(TAG, "Service discovery success\n" + service);
             	String full_service_name = service.getServiceName();
-            	if(full_service_name.equals(mServiceName) ) {
-            		Log.v(TAG, "Service name equals to self service name. Won't add it to hashmap.");
-            		return;
-            	}
+//            	if(full_service_name.equals(mServiceName) ) {
+//            		Log.v(TAG, "Service name equals to self service name. Won't add it to hashmap.");
+//            		return;
+//            	}
             	String device_name = getDeviceNameFromService(service);
             	if(device_name == null) {
             		Log.v(TAG, "device name cannot be resolved.");
             		return;
             	}            	
-            	if(!name2NsdInfo.containsKey(device_name) || full_service_name.matches("\\(\\d\\)$")) {
-            		Log.d(TAG, "Service name need to be added or updated.");
+            	if(true || full_service_name.matches("\\(\\d\\)$")) {
+            		Log.d(TAG, "Service name: " + device_name + " need to be added or updated.");
             		name2NsdInfo.put(device_name, service);            		
             		// TODO the resolved service will get updated in the map.
             		mNsdManager.resolveService(service, mResolveListener);
             	}else
-            		Log.d(TAG, "Service doesn't need to be updated.");
+            		Log.d(TAG, device_name + " doesn't need to be updated.");
                
                 if (!service.getServiceType().equals(SERVICE_TYPE)) {
                     Log.d(TAG, "Unknown Service Type: " + service.getServiceType());

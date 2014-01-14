@@ -134,30 +134,6 @@ public class NsdChatActivity extends Activity {
         super.onDestroy();
     }
     
-    class PackageHandlerThread implements Runnable {   	
-    	private Socket mSocket;
-    	public PackageHandlerThread(Socket socket) {
-    		this.mSocket = socket;
-    	} 	
-    	public void run() {
-    		try {
-    			ProtocolPackage p = ProtocolPackage.receivePackage(mSocket.getInputStream());
-    			PackageHandler pHandler = new PackageHandler();
-    			pHandler.setSocket(mSocket);   			
-    			String external = Environment.getExternalStorageDirectory().getPath();
-    			String metaPath = external + "/Pifitest/meta.dat";
-    			String transferDirectory = external + "Pifitest/" + p.getSender();
-    			String selfName = mNsdHelper.getSelfName();
-        		pHandler.setMetaPath(metaPath);
-        		pHandler.setTransferDirectory(transferDirectory);
-        		pHandler.setSender(selfName);
-    			pHandler.handlePackage(p);  			
-    		}catch(Exception e) {
-    			e.printStackTrace();
-    		}   		    			
-    	}
-    }
-    
     protected void DiscoverDevices()
     {
             ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
@@ -200,8 +176,9 @@ public class NsdChatActivity extends Activity {
             	while (!Thread.currentThread().isInterrupted()) {                  
                 	Log.d(TAG, "ServerSocket Created, awaiting connection");
     				Socket connector = mServerSocket.accept();	
-    				Runnable eventHandler = new PackageHandlerThread(connector);
-    				eventHandler.run();
+    				Log.d(TAG, "received request.");
+    				PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName());
+    				handler.handle();
             		}
     			} catch (IOException e) {
     				e.printStackTrace();
@@ -251,10 +228,11 @@ public class NsdChatActivity extends Activity {
             @Override
             public void run() {
             	while(true) {
-            		try {
+            		try {           			
             			NsdServiceInfo next_device = queue.take();
+            			Log.d(TAG, "send request to device " + next_device.getServiceName());
                 		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
-                		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.SEND_META, 
+                		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
                 				mNsdHelper.getSelfName());
                 		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
                 		// TODO need to close the socket?

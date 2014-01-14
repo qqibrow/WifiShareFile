@@ -49,7 +49,7 @@ public class ProtocolPackage implements java.io.Serializable{
 			obj_os.flush();
 			
 			switch(type) {
-			case GET_META:
+			case REQUEST_META:
 				break;
 			case SEND_META:
 			case SEND_FILE:
