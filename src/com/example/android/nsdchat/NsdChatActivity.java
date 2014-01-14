@@ -47,11 +47,13 @@ public class NsdChatActivity extends Activity {
 
     public static final String TAG = "NsdChat";
 
-    
     private int QUEUE_CAPACITY = 100;
     private BlockingQueue<NsdServiceInfo> queue = new ArrayBlockingQueue<NsdServiceInfo>(QUEUE_CAPACITY);
-    RequestMetaThread request_meta_thread;
-    ServerPackageThread serverthread;
+    
+    
+    MetaRequester mMetaRequester = null;
+    PackageServer mPackageServer = null;
+	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,23 +69,26 @@ public class NsdChatActivity extends Activity {
             }
         };
         
-        serverthread = new ServerPackageThread();
-        serverthread.run();
-        
-        mNsdHelper = new NsdHelper(this, queue);      
-        request_meta_thread = new RequestMetaThread(queue);
-        request_meta_thread.run();
-        
-        
-        
+        mNsdHelper = new NsdHelper(this, queue);
         mNsdHelper.initializeNsd();
-
+        
+        mPackageServer = new PackageServer();
+        mMetaRequester = new MetaRequester(queue);  
     }
+    
+    @Override
+	protected void onStart() {
+		super.onStart();
+		
+		//serverthread = new Thread(new ServerPackageThread()); 
+        //request_meta_thread.run();        
+	}
+
 
     public void clickAdvertise(View v) {
         // Register service
-        if(serverthread.getPort() > -1) {
-            mNsdHelper.registerService(serverthread.getPort());
+        if(mPackageServer.getPort() > -1) {
+            mNsdHelper.registerService(mPackageServer.getPort());
         } else {
             Log.d(TAG, "ServerSocket isn't bound.");
         }
@@ -134,6 +139,7 @@ public class NsdChatActivity extends Activity {
     protected void onDestroy() {
     	Log.v(TAG, "on destroy");
         mNsdHelper.tearDown();
+        mPackageServer.tearDown();
         super.onDestroy();
     }
     
@@ -172,49 +178,64 @@ public class NsdChatActivity extends Activity {
             }, 0, 10, TimeUnit.SECONDS);
     }
     
-    class ServerPackageThread implements Runnable{
-        
-        private ServerSocket  mSocket;
-        
-        public int getPort() {
-        	if(mSocket == null)
+    private class PackageServer {
+    	ServerSocket mServerSocket = null;
+    	Thread mThread = null;
+    	
+    	public PackageServer() {
+    		mThread = new Thread(new ServerPackageThread());
+    		mThread.start();
+    	}
+    	
+    	public void tearDown() {
+            mThread.interrupt();
+            try {
+                mServerSocket.close();
+            } catch (IOException ioe) {
+                Log.e(TAG, "Error when closing server socket.");
+            }
+        }
+    	
+    	public int getPort() {
+        	if(mServerSocket == null)
         		return -1;
-        	return mSocket.getLocalPort();
+        	return mServerSocket.getLocalPort();
         }
-        
-        public ServerPackageThread() {
-        	try {
-        		mSocket = new ServerSocket(0);
-        	}catch(IOException e) {
-        		Log.e(TAG, "Error creating ServerSocket", e);
-        		e.printStackTrace();
-        	}     	
-        }
-        
-        public void run() {
-        	while (!Thread.currentThread().isInterrupted()) {
-               try {
-				Socket connector = mSocket.accept();	
-				Runnable eventHandler = new PackageHandlerThread(connector);
-				eventHandler.run();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-               
-        	}
+    	
+    	class ServerPackageThread implements Runnable{
+            public void run() {
+            	try {
+            		mServerSocket = new ServerSocket(0);
+            	while (!Thread.currentThread().isInterrupted()) {                  
+                	Log.d(TAG, "ServerSocket Created, awaiting connection");
+    				Socket connector = mServerSocket.accept();	
+    				Runnable eventHandler = new PackageHandlerThread(connector);
+    				eventHandler.run();
+            		}
+    			} catch (IOException e) {
+    				e.printStackTrace();
+    			}
+            }
         }
     }
     
-    class RequestMetaThread implements Runnable {
-
-        private BlockingQueue<NsdServiceInfo> queue;
-        private Socket mSocket;
-        
-        public RequestMetaThread(BlockingQueue<NsdServiceInfo> queue) {
-            this.queue = queue;
+    
+    private class MetaRequester {
+    	private BlockingQueue<NsdServiceInfo> queue = null;
+    	private Socket mSocket = null;
+    	private Thread mThread = null;
+    	
+    	public MetaRequester(BlockingQueue<NsdServiceInfo> q) {
+    		queue = q;
+    		mThread = new Thread(new RequestMetaThread());
+    		mThread.start();
+    	}
+    	
+    	public void tearDown() {
+            mThread.interrupt();
         }
-        
-        private synchronized void setSocket(Socket socket) {
+    	
+    	private synchronized void setSocket(Socket socket) {
             Log.d(TAG, "setSocket being called.");
             if (socket == null) {
                 Log.d(TAG, "Setting a null socket.");
@@ -230,26 +251,29 @@ public class NsdChatActivity extends Activity {
             }
             mSocket = socket;
         }
+    	
         private Socket getSocket() {
             return mSocket;
-        }       
-
-        @Override
-        public void run() {
-        	while(true) {
-        		try {
-        			NsdServiceInfo next_device = queue.take();
-            		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
-            		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.SEND_META, 
-            				mNsdHelper.getSelfName());
-            		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
-            		// TODO need to close the socket?
-            		mSocket.close();           		
-        		}catch(Exception e) {
-        			e.printStackTrace();
-        		}       		  		
-        	}
         }
+        
+        class RequestMetaThread implements Runnable {
+            @Override
+            public void run() {
+            	while(true) {
+            		try {
+            			NsdServiceInfo next_device = queue.take();
+                		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
+                		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.SEND_META, 
+                				mNsdHelper.getSelfName());
+                		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
+                		// TODO need to close the socket?
+                		mSocket.close();           		
+            		}catch(Exception e) {
+            			e.printStackTrace();
+            		}       		  		
+            	}
+            }
+        }
+    	
     }
-    
 }

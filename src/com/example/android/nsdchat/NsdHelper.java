@@ -65,7 +65,7 @@ public class NsdHelper {
     public void initializeNsd() {
         initializeResolveListener();
         initializeDiscoveryListener();
-        initializeRegistrationListener();
+       initializeRegistrationListener();
 
         //mNsdManager.init(mContext.getMainLooper(), this);
 
@@ -93,7 +93,7 @@ public class NsdHelper {
             public void onServiceFound(NsdServiceInfo service) {
             	Log.d(TAG, "Service discovery success\n" + service);
             	String full_service_name = service.getServiceName();
-            	if(full_service_name == mServiceName) {
+            	if(full_service_name.equals(mServiceName) ) {
             		Log.v(TAG, "Service name equals to self service name. Won't add it to hashmap.");
             		return;
             	}
