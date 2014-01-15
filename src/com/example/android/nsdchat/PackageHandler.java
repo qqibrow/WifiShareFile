@@ -22,6 +22,8 @@ public class PackageHandler {
 	
 	byte[] buffer = new byte[8 * 1024];
 	
+	 public static final String TAG = "PackageHandler";
+	 
 	PackageHandler(Socket socket, String self_name) {
 		mSocket = socket;
 		sender = self_name;
@@ -54,7 +56,7 @@ public class PackageHandler {
 				sender, meta_file_name, meta_file_length);
 		try {
 			send_meta.sendPackage(out);		
-			FileInputStream fis = new FileInputStream(file.toString());			
+			FileInputStream fis = new FileInputStream(file);			
 			writeToStream(new DataOutputStream(out), new DataInputStream(fis));
 			fis.close();
 			
@@ -66,6 +68,7 @@ public class PackageHandler {
 	public void handlePackage(ProtocolPackage p) {
 		switch(p.getType()) {
 		case REQUEST_META:
+			Log.d(TAG, "handle request meta message");
 			try {
 				sendPackagedFile(filemanager.getMataFile(), mSocket.getOutputStream());				
 			}catch(Exception e) {
@@ -73,6 +76,7 @@ public class PackageHandler {
 			}		
 			break;
 		case SEND_META:
+			Log.d(TAG, "handle send meta message");
 			// Receive the meta file and then calculate the difference and then send file.
 			try {
 				// Read and store other meta file.
@@ -102,6 +106,7 @@ public class PackageHandler {
 			}	
 			
 		case SEND_FILE:
+			Log.d(TAG, "handle send file message");
 			// Just receive the file and store the file in (trasferDirectory + phoneId) directory.
 			File local_dir = filemanager.getDeviceTempDirectory(p.getSender());
 			assert(local_dir.exists());
@@ -160,10 +165,11 @@ public class PackageHandler {
 	private void writeToStream(DataOutputStream out, DataInputStream in) {
 		int readed = 0;
 		try {			
-			while(readed != -1) {
-				readed = in.read(buffer);
+			readed = in.read(buffer);
+			while(readed != -1) {				
 				out.write(buffer, 0, readed);
 				out.flush();
+				readed = in.read(buffer);
 			}
 		}catch(Exception e) {
 			e.printStackTrace();

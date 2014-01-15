@@ -103,7 +103,9 @@ public class NsdChatActivity extends Activity {
     }
 
     public void clickSend(View v) {
-    	Log.v("clickSend", "Do nothing here");
+    	//Log.v("clickSend", "Do nothing here");
+    	mNsdHelper.tearDown();
+    	Log.d(TAG, "unregistered service.");
     }
 
     public void addChatLine(String line) {
@@ -192,7 +194,6 @@ public class NsdChatActivity extends Activity {
     	private BlockingQueue<NsdServiceInfo> queue = null;
     	private Socket mSocket = null;
     	private Thread mThread = null;
-    	
     	public MetaRequester(BlockingQueue<NsdServiceInfo> q) {
     		queue = q;
     		mThread = new Thread(new RequestMetaThread());
@@ -232,6 +233,8 @@ public class NsdChatActivity extends Activity {
             			NsdServiceInfo next_device = queue.take();
             			Log.d(TAG, "send request to device " + next_device.getServiceName());
                 		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
+                	//	Thread receiveThread = new Thread(new ReceiveThread());
+                	//	receiveThread.run();
                 		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
                 				mNsdHelper.getSelfName());
                 		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
@@ -242,6 +245,23 @@ public class NsdChatActivity extends Activity {
             		}       		  		
             	}
             }
+        }
+        
+        private class ReceiveThread implements Runnable {
+        	 public void run() {
+             	try {
+             		Socket socket = getSocket();
+             		while (!Thread.currentThread().isInterrupted()) {                  
+     				Log.d(TAG, "ReceiveThread received request.");   
+     				ProtocolPackage p = ProtocolPackage.receivePackage(socket.getInputStream());
+     				Log.d(TAG, p.toString());
+     				//PackageHandler handler = new PackageHandler(socket, mNsdHelper.getSelfName());
+     				//handler.handle();
+             		}
+     			} catch (Exception e) {
+     				e.printStackTrace();
+     			}
+             }
         }
     	
     }

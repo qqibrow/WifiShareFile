@@ -102,7 +102,7 @@ public class NsdHelper {
             		Log.v(TAG, "device name cannot be resolved.");
             		return;
             	}
-            	else if(true ||full_service_name.equals(selfName)) {
+            	else if(device_name.equals(selfName)) {
             		Log.d(TAG, "not resolve itself");
             	}          	
             	else if(true || full_service_name.matches("\\(\\d\\)$")) {
@@ -157,7 +157,6 @@ public class NsdHelper {
             	String device_name = getDeviceNameFromService(serviceInfo);
                 Log.e(TAG, "Resolve Succeeded" +device_name + ".\n"  + serviceInfo);
                 name2NsdInfo.put(device_name, serviceInfo);
-                Log.d(TAG, "send package of request meta data.");
                 try {
                 	queue.put(serviceInfo);
                 }catch (InterruptedException e) {
@@ -215,4 +214,5 @@ public class NsdHelper {
     	if(mRegistrationListener != null)
     		mNsdManager.unregisterService(mRegistrationListener);
     }
+    
 }

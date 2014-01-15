@@ -22,7 +22,10 @@ public class PifiFileManager {
 	}
 	
 	public File getMataFile() {
-		return new File(meta_file_path);
+		File meta = new File(meta_file_path);
+		if(meta.exists())
+			return meta;
+		return null;
 	}
 	
 	List<File> getDelta(byte[] otherMetaFile) {
