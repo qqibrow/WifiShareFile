@@ -55,7 +55,7 @@ public class NsdChatActivity extends Activity {
     
     MetaRequester mMetaRequester = null;
     PackageServer mPackageServer = null;
-	
+	private Socket mSocket = null;
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -75,7 +75,7 @@ public class NsdChatActivity extends Activity {
         mNsdHelper.initializeNsd();
         
         mPackageServer = new PackageServer();
-        mMetaRequester = new MetaRequester(queue);  
+        //mMetaRequester = new MetaRequester(queue);  
     }
 
     public void clickAdvertise(View v) {
@@ -90,9 +90,56 @@ public class NsdChatActivity extends Activity {
     public void clickDiscover(View v) {
         mNsdHelper.discoverServices();
     }
+    
+    private synchronized void setSocket(Socket socket) {
+        Log.d(TAG, "setSocket being called.");
+        if (socket == null) {
+            Log.d(TAG, "Setting a null socket.");
+        }
+        if (mSocket != null) {
+            if (mSocket.isConnected()) {
+                try {
+                    mSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        mSocket = socket;
+    }
+	
+    private Socket getSocket() {
+        return mSocket;
+    }
+    
 
     public void clickConnect(View v) {
-    	Log.v("clickConnect", "Do nothing here");
+    	new Thread(new Runnable() {
+
+    		@Override
+    		public void run() {
+    			try {           			
+    				for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {
+    				Log.d(TAG, "send request to device " + next_device.getServiceName());
+    	    		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
+    	    		//Thread receiveThread = new Thread(new ReceiveThread());
+    	    		//receiveThread.run();
+    	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
+    	    				mNsdHelper.getSelfName());
+    	    		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
+    	    		// TODO need to close the socket?
+    	    		//mSocket.close();  
+    				}
+    			}catch(Exception e) {
+    				e.printStackTrace();
+    			}       	
+    		}
+    		
+    	}).start();
+    	
+    	
+    	
+    	
     }
     
     public void clickDisconnect(View w) {
