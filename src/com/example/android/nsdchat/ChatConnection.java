@@ -14,30 +14,17 @@
  * limitations under the License.
  */
 
-// NOT USED NOW
-
-
 package com.example.android.nsdchat;
 
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -74,7 +61,7 @@ public class ChatConnection {
 
     public void sendMessage(String msg) {
         if (mChatClient != null) {
-            mChatClient.sendFile(msg);
+            mChatClient.sendMessage(msg);
         }
     }
     
@@ -180,7 +167,7 @@ public class ChatConnection {
         private int PORT;
 
         private final String CLIENT_TAG = "ChatClient";
-        private final String DIRECTORY = "DATA";
+
         private Thread mSendThread;
         private Thread mRecThread;
 
@@ -239,42 +226,24 @@ public class ChatConnection {
             @Override
             public void run() {
 
-               // BufferedReader input;
+                BufferedReader input;
                 try {
-//                    input = new BufferedReader(new InputStreamReader(
-//                            mSocket.getInputStream()));
-//	                    
-//                    while (!Thread.currentThread().isInterrupted()) {
-//
-//                        String messageStr = null;
-//                        messageStr = input.readLine();
-//                        if (messageStr != null) {
-//                            Log.d(CLIENT_TAG, "Read from the stream: " + messageStr);
-//                            updateMessages(messageStr, false);
-//                        } else {
-//                            Log.d(CLIENT_TAG, "The nulls! The nulls!");
-//                            break;
-//                        }
-//                    }
-//                    input.close();
-                	
-                	DataInputStream socket_is = new DataInputStream(mSocket.getInputStream());
-                	String file_name = socket_is.readUTF();
-                	long file_length = socket_is.readLong();
-                	
-                	//BufferedInputStream socket_buffer_is = new BufferedInputStream(mSocket.getInputStream());
-                	File new_file = new File(Environment.getExternalStorageDirectory(), '/' +DIRECTORY + '/'  + file_name);                	
-                	FileOutputStream file_os = new FileOutputStream(new_file);
-                	DataOutputStream file_data_os = new DataOutputStream(file_os);
-                	long bytesReaded = 0;              	
-                	byte[] bytes = new byte[8 * 1024];
-                	while(bytesReaded < file_length) {
-                		int readed = socket_is.read(bytes);
-                		bytesReaded += readed;
-                		file_data_os.write(bytes, 0, readed);
-                	}
-                	file_data_os.close(); 
-                	Log.v(TAG, "file received finished");
+                    input = new BufferedReader(new InputStreamReader(
+                            mSocket.getInputStream()));
+                    while (!Thread.currentThread().isInterrupted()) {
+
+                        String messageStr = null;
+                        messageStr = input.readLine();
+                        if (messageStr != null) {
+                            Log.d(CLIENT_TAG, "Read from the stream: " + messageStr);
+                            updateMessages(messageStr, false);
+                        } else {
+                            Log.d(CLIENT_TAG, "The nulls! The nulls!");
+                            break;
+                        }
+                    }
+                    input.close();
+
                 } catch (IOException e) {
                     Log.e(CLIENT_TAG, "Server loop error: ", e);
                 }
@@ -312,53 +281,6 @@ public class ChatConnection {
                 Log.d(CLIENT_TAG, "Error3", e);
             }
             Log.d(CLIENT_TAG, "Client sent message: " + msg);
-        }
-        
-        public void sendFile(String file_name) {
-        	try {
-        		Socket socket = getSocket();
-        		if(socket == null) {
-        			Log.d(CLIENT_TAG, "Socket is null, wtf?");
-        		}else if(socket.getOutputStream() == null) {
-        			Log.d(CLIENT_TAG, "Socket output stream is null, wtf?");
-        		}
-        		
-        		// send file.
-        		File file = new File(Environment.getExternalStorageDirectory(),
-        				'/' + DIRECTORY + '/' + file_name);
-        		
-        		OutputStream os = socket.getOutputStream();
-        		DataOutputStream socket_data_os = new DataOutputStream(os);  
-        
-        		byte[] buffer = new byte[8 * 1024];
-        		socket_data_os.writeUTF(file.getName());
-        	
-        		socket_data_os.flush();
-        		
-        		long file_length = (long)file.length();
-        		socket_data_os.writeLong(file_length);
-        		socket_data_os.flush();
-        		
-        		FileInputStream fis = new FileInputStream(file.toString());   
-        		DataInputStream bis = new DataInputStream(fis);    
-        		
-        		int readed = 0;
-        		while(readed != -1) {
-        			readed = bis.read(buffer);
-        			socket_data_os.write(buffer, 0, readed);
-        			socket_data_os.flush();
-        		}
-        		Log.v(TAG, "file send finished");
-        		bis.close();
-        		
-        	}catch (UnknownHostException e) {
-                Log.d(CLIENT_TAG, "Unknown Host", e);
-            } catch (IOException e) {
-                Log.d(CLIENT_TAG, "I/O Exception", e);
-            } catch (Exception e) {
-                Log.d(CLIENT_TAG, "Error3", e);
-            }
-            Log.d(CLIENT_TAG, "Client sent message: " + file_name); 
         }
     }
 }

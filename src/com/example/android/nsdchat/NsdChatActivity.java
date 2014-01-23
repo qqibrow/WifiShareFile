@@ -16,7 +16,9 @@
 
 package com.example.android.nsdchat;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -179,7 +181,7 @@ public class NsdChatActivity extends Activity {
                 	Log.d(TAG, "ServerSocket Created, awaiting connection");
     				Socket connector = mServerSocket.accept();	
     				Log.d(TAG, "received request.");
-    				PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName());
+    				PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName(), mNsdHelper);
     				handler.handle();
             		}
     			} catch (IOException e) {
@@ -233,8 +235,8 @@ public class NsdChatActivity extends Activity {
             			NsdServiceInfo next_device = queue.take();
             			Log.d(TAG, "send request to device " + next_device.getServiceName());
                 		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
-                	//	Thread receiveThread = new Thread(new ReceiveThread());
-                	//	receiveThread.run();
+                		//Thread receiveThread = new Thread(new ReceiveThread());
+                		//receiveThread.run();
                 		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
                 				mNsdHelper.getSelfName());
                 		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
@@ -249,12 +251,19 @@ public class NsdChatActivity extends Activity {
         
         private class ReceiveThread implements Runnable {
         	 public void run() {
+        		 BufferedReader input;
              	try {
              		Socket socket = getSocket();
+             		input = new BufferedReader(new InputStreamReader(
+             				socket.getInputStream()));
              		while (!Thread.currentThread().isInterrupted()) {                  
-     				Log.d(TAG, "ReceiveThread received request.");   
-     				ProtocolPackage p = ProtocolPackage.receivePackage(socket.getInputStream());
-     				Log.d(TAG, p.toString());
+     				//Log.d(TAG, "ReceiveThread received request.");
+     				String messageStr = null;
+                    messageStr = input.readLine();
+                    if(messageStr != null)
+                    	Log.d("ReceiveThread", messageStr);
+     				//ProtocolPackage p = ProtocolPackage.receivePackage(socket.getInputStream());
+     				//Log.d(TAG, p.toString());
      				//PackageHandler handler = new PackageHandler(socket, mNsdHelper.getSelfName());
      				//handler.handle();
              		}

@@ -1,17 +1,24 @@
 package com.example.android.nsdchat;
 
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import android.net.nsd.NsdServiceInfo;
 import android.util.Log;
 
 public class PackageHandler {	
@@ -20,6 +27,7 @@ public class PackageHandler {
 	private PifiFileManager filemanager;
 	private Thread mThread = null;
 	
+	private NsdHelper nsdHelper = null;
 	byte[] buffer = new byte[8 * 1024];
 	
 	 public static final String TAG = "PackageHandler";
@@ -29,6 +37,12 @@ public class PackageHandler {
 		sender = self_name;
 		filemanager = new PifiFileManager();
 		mThread = new Thread(new PackageHandlerThread());
+	}
+	
+	PackageHandler(Socket socket, String self_name, NsdHelper nsdhelper) {
+		this(socket, self_name);
+		this.nsdHelper = nsdhelper;
+		
 	}
 	
 	public void handle() {
@@ -48,14 +62,16 @@ public class PackageHandler {
 
 	// Warp the file as the send_meta package and output to OutputStream.
 	// the format of the package will be || packageheader | file ||.
-	private void sendPackagedFile(File file, OutputStream out) {
+	private void sendPackagedFile(File file, OutputStream out, PackageType type) {
 		long meta_file_length = file.length();
 		String meta_file_name = file.getName();
 		
-		ProtocolPackage send_meta = new ProtocolPackage(PackageType.SEND_META, 
+		ProtocolPackage sendpackage = new ProtocolPackage(type, 
 				sender, meta_file_name, meta_file_length);
 		try {
-			send_meta.sendPackage(out);		
+			//sendpackage.sendPackage(out);
+			ObjectOutputStream obj_os = new ObjectOutputStream(out);
+			obj_os.writeObject(sendpackage);
 			FileInputStream fis = new FileInputStream(file);			
 			writeToStream(new DataOutputStream(out), new DataInputStream(fis));
 			fis.close();
@@ -65,46 +81,69 @@ public class PackageHandler {
 		}	
 	}	
 	
-	public void handlePackage(ProtocolPackage p) {
+	public void handlePackage(ProtocolPackage p) throws Exception{
+		if(p == null) {
+			Log.d(TAG, "Pacckage is null");
+			return;
+		}		
+		String sender = p.getSender();
+		NsdServiceInfo server = nsdHelper.name2NsdInfo.get(sender);		
+		Socket outputSocket = new Socket(server.getHost(), server.getPort());
+		
 		switch(p.getType()) {
 		case REQUEST_META:
 			Log.d(TAG, "handle request meta message");
 			try {
-				sendPackagedFile(filemanager.getMataFile(), mSocket.getOutputStream());				
+				sendPackagedFile(filemanager.getMataFile(), outputSocket.getOutputStream(), PackageType.SEND_META);				
 			}catch(Exception e) {
 				e.printStackTrace();
-			}		
+			}
+			outputSocket.close();
 			break;
 		case SEND_META:
 			Log.d(TAG, "handle send meta message");
 			// Receive the meta file and then calculate the difference and then send file.
 			try {
 				// Read and store other meta file.
-        		DataInputStream socket_in = new DataInputStream(mSocket.getInputStream());         
-        		long byteCount = socket_in.readLong();
-        		byte[] buf;
-        		if(byteCount == p.getFile_length()){
-					// read metadata
-					buf = new byte[(int) byteCount];
-					int bytesRead = socket_in.read(buf, 0, buf.length);
-					if(bytesRead != buf.length) {
-						throw new Exception("The length readed is not equal to the actual file length.");
-					}
-					Log.v("RECEIVE_META_FILE", buf.toString());	
-        		}        		
-        		else{
-        			throw new Exception ("Corrupted file.");
+        		//DataInputStream socket_in = new DataInputStream(mSocket.getInputStream());         
+        		//long byteCount = socket_in.readLong();
+        		byte[] buf = new byte[(int)p.getFile_length()];
+        		//long file_length = p.getFile_length();
+        		
+        		BufferedReader inputStream   = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+        		String line = inputStream.readLine();
+        		while(line != null) {
+        			Log.d("SEND_META", line);
+        			line = inputStream.readLine();
         		}
         		
-    			List<File> files = filemanager.getDelta(buf);
+        		
+//        		if(true || byteCount == p.getFile_length()){
+//					// read metadata
+//        			
+//					buf = new byte[(int) file_length];
+//					int bytesRead = socket_in.read(buf, 0, buf.length);
+//					if(bytesRead != buf.length) {
+//						throw new Exception("The length readed is not equal to the actual file length.");
+//					}
+//					Log.v("RECEIVE_META_FILE", buf.toString());	
+//        		}        		
+//        		else{
+//        			throw new Exception ("Corrupted file.");
+//        		}
+//        		
+    			File[] files = filemanager.getDelta(buf);
     			
     			for(File file : files) {
-    				sendPackagedFile(file, mSocket.getOutputStream());
+    				sendPackagedFile(file, outputSocket.getOutputStream(), PackageType.SEND_FILE);
+    				outputSocket.close();
+    				outputSocket = new Socket(server.getHost(), server.getPort());
     			}				
 			}catch(Exception e) {
 				e.printStackTrace();
-			}	
-			
+			}
+			outputSocket.close();
+			break;
 		case SEND_FILE:
 			Log.d(TAG, "handle send file message");
 			// Just receive the file and store the file in (trasferDirectory + phoneId) directory.
@@ -112,10 +151,18 @@ public class PackageHandler {
 			assert(local_dir.exists());
 			File new_file = new File(local_dir, p.getFile_name());
 			try {
+				/*BufferedReader inputStream   = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+        		String line = inputStream.readLine();
+        		while(line != null) {
+        			Log.d("SEND_FILE", line);
+        			line = inputStream.readLine();
+        		}*/
 				DataInputStream in = new DataInputStream(mSocket.getInputStream());
 				DataOutputStream out = new DataOutputStream(new FileOutputStream(new_file));
-				writeToStream(out, in);
-				out.close();
+				writeToStream(out, in, (int)p.getFile_length());
+				Log.d("SEND_FILE", "Got file " + p.getFile_name() + " successfully.");
+				ProtocolPackage x = ProtocolPackage.receivePackage(mSocket.getInputStream());
+    			handlePackage(x);
 				
 			}catch(Exception e) {
 				e.printStackTrace();
@@ -168,13 +215,30 @@ public class PackageHandler {
 			readed = in.read(buffer);
 			while(readed != -1) {				
 				out.write(buffer, 0, readed);
-				out.flush();
+				//out.flush();
 				readed = in.read(buffer);
 			}
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
 		
+	}
+	
+	private void writeToStream(DataOutputStream out, DataInputStream in, int length) {
+		byte[] buffer = new byte[1024*8];
+		int bytesLeft = length; // Or whatever
+		  try {
+		    while (bytesLeft > 0) {
+		      int read = in.read(buffer, 0, Math.min(bytesLeft, buffer.length));
+		      if (read == -1) {
+		        throw new EOFException("Unexpected end of data");
+		      }
+		      out.write(buffer, 0, read);
+		      bytesLeft -= read;
+		    }
+		  } catch(Exception e) {
+			  e.printStackTrace();
+		  }
 	}
 	
 	private void readFromStream(DataOutputStream out, DataInputStream in, long length) {

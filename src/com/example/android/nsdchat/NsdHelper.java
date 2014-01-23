@@ -29,7 +29,7 @@ import android.net.wifi.WifiManager;
 import android.util.Log;
 public class NsdHelper {
     Context mContext;
-    HashMap<String, NsdServiceInfo> name2NsdInfo = new HashMap<String, NsdServiceInfo>();
+    public HashMap<String, NsdServiceInfo> name2NsdInfo = new HashMap<String, NsdServiceInfo>();
     
     NsdManager mNsdManager;
     NsdManager.ResolveListener mResolveListener;

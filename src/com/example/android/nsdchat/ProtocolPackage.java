@@ -75,9 +75,9 @@ public class ProtocolPackage implements java.io.Serializable{
 	
 	public  static ProtocolPackage receivePackage(InputStream in) {
 		try {
-			ObjectInputStream obj_in = new ObjectInputStream(in);
-			ProtocolPackage other = (ProtocolPackage)obj_in.readObject();
-			return other;
+				ObjectInputStream obj_in = new ObjectInputStream(in);
+				ProtocolPackage other = (ProtocolPackage)obj_in.readObject();
+				return other;	
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -85,9 +85,12 @@ public class ProtocolPackage implements java.io.Serializable{
 	}
 	
 	public String getFile_name() {
+		return file_name;
+	}
+	
+	public String getFileNameWithoutExtension() {
 		return removeExtension(file_name);
 	}
-
 	public void setFile_name(String file_name) {
 		this.file_name = file_name;
 	}

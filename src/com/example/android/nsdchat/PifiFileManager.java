@@ -28,8 +28,15 @@ public class PifiFileManager {
 		return null;
 	}
 	
-	List<File> getDelta(byte[] otherMetaFile) {
-		return null;
+	File[] getDelta(byte[] otherMetaFile) {
+		return getDeltaTest();
+	}
+	
+	// it will return all files under root_dir/test_dir.
+	File[] getDeltaTest() {
+		File test_dir = new File(appendPath(app_root_path, "testfiles"));
+		assert(test_dir.isDirectory() && test_dir.exists());
+		return test_dir.listFiles();
 	}
 
 	// Get temp data directory pointed by device name.
@@ -47,7 +54,11 @@ public class PifiFileManager {
 	
 	// the original format device name may not be a valid path name. e.g. a MAC address contains ':', which is invalid.
 	private String getRightFormatDeviceName(String device_name) {
-		device_name.replace("X", "");
-		return device_name;
+		StringBuffer res = new StringBuffer();
+		for(char c : device_name.toCharArray()) {
+			if(c != ':')
+				res.append(c);
+		}
+		return res.toString();
 	}
 }
