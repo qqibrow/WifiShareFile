@@ -87,7 +87,11 @@ public class PackageHandler {
 			return;
 		}		
 		String sender = p.getSender();
-		NsdServiceInfo server = nsdHelper.name2NsdInfo.get(sender);		
+		NsdServiceInfo server = nsdHelper.name2NsdInfo.get(sender);	
+		if(server == null || server.getHost() == null) {
+			Log.d("SENDER", "Sender is null or host is null.");
+			return;
+		}
 		Socket outputSocket = new Socket(server.getHost(), server.getPort());
 		
 		switch(p.getType()) {
@@ -136,6 +140,7 @@ public class PackageHandler {
     			
     			for(File file : files) {
     				sendPackagedFile(file, outputSocket.getOutputStream(), PackageType.SEND_FILE);
+    				Log.d("SEND_META", "send file " + file.getName() + " Successfully.");
     				outputSocket.close();
     				outputSocket = new Socket(server.getHost(), server.getPort());
     			}				

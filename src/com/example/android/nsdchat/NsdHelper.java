@@ -29,7 +29,7 @@ import android.net.wifi.WifiManager;
 import android.util.Log;
 public class NsdHelper {
     Context mContext;
-    public HashMap<String, NsdServiceInfo> name2NsdInfo = new HashMap<String, NsdServiceInfo>();
+    public volatile HashMap<String, NsdServiceInfo> name2NsdInfo = new HashMap<String, NsdServiceInfo>();
     
     NsdManager mNsdManager;
     NsdManager.ResolveListener mResolveListener;
@@ -106,8 +106,7 @@ public class NsdHelper {
             		Log.d(TAG, "not resolve itself");
             	}          	
             	else if(true || full_service_name.matches("\\(\\d\\)$")) {
-            		Log.d(TAG, "Service name: " + device_name + " need to be added or updated.");
-            		name2NsdInfo.put(device_name, service);            		
+            		Log.d(TAG, "Service name: " + device_name + " need to be added or updated.");              		
             		// TODO the resolved service will get updated in the map.
             		mNsdManager.resolveService(service, mResolveListener);
             	}else

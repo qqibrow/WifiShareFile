@@ -120,19 +120,21 @@ public class NsdChatActivity extends Activity {
     		public void run() {
     			try {           			
     				for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {
+    					if(next_device.getHost() != null && next_device.getPort() != 0) {
     				Log.d(TAG, "send request to device " + next_device.getServiceName());
-    	    		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
+    	    		Socket socket = new Socket(next_device.getHost(), next_device.getPort());
     	    		//Thread receiveThread = new Thread(new ReceiveThread());
     	    		//receiveThread.run();
     	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
     	    				mNsdHelper.getSelfName());
-    	    		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
+    	    		requst_meta_package.sendPackage(socket.getOutputStream());            		
     	    		// TODO need to close the socket?
-    	    		//mSocket.close();  
+    	    		socket.close();
+    				}
     				}
     			}catch(Exception e) {
     				e.printStackTrace();
-    			}       	
+    			}
     		}
     		
     	}).start();
@@ -181,7 +183,7 @@ public class NsdChatActivity extends Activity {
     protected void onDestroy() {
     	Log.v(TAG, "on destroy");
         mNsdHelper.tearDown();
-        mPackageServer.tearDown();
+        //mPackageServer.tearDown();
         super.onDestroy();
     }
     
@@ -232,7 +234,7 @@ public class NsdChatActivity extends Activity {
     				handler.handle();
             		}
     			} catch (IOException e) {
-    				e.printStackTrace();
+    				e.printStackTrace();    				
     			}
             }
         }
@@ -277,23 +279,41 @@ public class NsdChatActivity extends Activity {
         class RequestMetaThread implements Runnable {
             @Override
             public void run() {
-            	while(true) {
-            		try {           			
-            			NsdServiceInfo next_device = queue.take();
-            			Log.d(TAG, "send request to device " + next_device.getServiceName());
-                		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
-                		//Thread receiveThread = new Thread(new ReceiveThread());
-                		//receiveThread.run();
-                		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
-                				mNsdHelper.getSelfName());
-                		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
-                		// TODO need to close the socket?
-                		//mSocket.close();           		
-            		}catch(Exception e) {
-            			e.printStackTrace();
-            		}       		  		
+//            	while(true) {
+//            		try {           			
+//            			NsdServiceInfo next_device = queue.take();
+//            			Log.d(TAG, "send request to device " + next_device.getServiceName());
+//                		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
+//                		//Thread receiveThread = new Thread(new ReceiveThread());
+//                		//receiveThread.run();
+//                		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
+//                				mNsdHelper.getSelfName());
+//                		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
+//                		// TODO need to close the socket?
+//                		//mSocket.close();  
+//                		
+//            		}catch(Exception e) {
+//            			e.printStackTrace();
+//            		}       		  		
+//            	}
+            	try {
+            		while(true) {
+            			for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {          				
+            				if(next_device.getHost() != null && next_device.getPort() != 0) {
+            					Log.d(TAG, "send request to device " + next_device.getServiceName());
+            					Socket socket = new Socket(next_device.getHost(), next_device.getPort());                	    		
+                	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
+                	    				mNsdHelper.getSelfName());
+                	    		requst_meta_package.sendPackage(socket.getOutputStream());  
+            				}
+            	    		    
+                    }
+                    	Thread.sleep(5000);
+            		}        	
+            	}catch(Exception e) {
+            		e.printStackTrace();
             	}
-            }
+        }
         }
         
         private class ReceiveThread implements Runnable {
