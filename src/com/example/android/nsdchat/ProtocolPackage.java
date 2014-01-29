@@ -73,15 +73,10 @@ public class ProtocolPackage implements java.io.Serializable{
 	
 	}
 	
-	public  static ProtocolPackage receivePackage(InputStream in) {
-		try {
-				ObjectInputStream obj_in = new ObjectInputStream(in);
-				ProtocolPackage other = (ProtocolPackage)obj_in.readObject();
-				return other;	
-		}catch(Exception e) {
-			e.printStackTrace();
-		}
-		return null;
+	public  static ProtocolPackage receivePackage(InputStream in) throws Exception{
+		ObjectInputStream obj_in = new ObjectInputStream(in);
+		ProtocolPackage other = (ProtocolPackage)obj_in.readObject();
+		return other;	
 	}
 	
 	public String getFile_name() {

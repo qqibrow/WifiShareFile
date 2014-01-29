@@ -46,7 +46,7 @@ public class PackageHandler {
 	}
 	
 	public void handle() {
-		mThread.run();
+		mThread.start();
 	}
 
 	class PackageHandlerThread implements Runnable {   	

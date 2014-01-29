@@ -75,7 +75,7 @@ public class NsdChatActivity extends Activity {
         mNsdHelper.initializeNsd();
         
         mPackageServer = new PackageServer();
-        //mMetaRequester = new MetaRequester(queue);  
+        mMetaRequester = new MetaRequester(queue);  
     }
 
     public void clickAdvertise(View v) {
@@ -121,16 +121,14 @@ public class NsdChatActivity extends Activity {
     			try {           			
     				for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {
     					if(next_device.getHost() != null && next_device.getPort() != 0) {
-    				Log.d(TAG, "send request to device " + next_device.getServiceName());
-    	    		Socket socket = new Socket(next_device.getHost(), next_device.getPort());
+    						Log.d(TAG, "put device into queue");
+    						queue.put(next_device);
+    				//Log.d(TAG, "send request to device " + next_device.getServiceName());
+    	    		//Socket socket = new Socket(next_device.getHost(), next_device.getPort());
     	    		//Thread receiveThread = new Thread(new ReceiveThread());
     	    		//receiveThread.run();
-    	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
-    	    				mNsdHelper.getSelfName());
-    	    		requst_meta_package.sendPackage(socket.getOutputStream());            		
-    	    		// TODO need to close the socket?
-    	    		socket.close();
-    				}
+    	    		
+    					}
     				}
     			}catch(Exception e) {
     				e.printStackTrace();
@@ -189,13 +187,14 @@ public class NsdChatActivity extends Activity {
     
     protected void DiscoverDevices()
     {
-            ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-            exec.scheduleAtFixedRate(new Runnable() {
-              @Override
-              public void run() {
-               mNsdHelper.discoverServices();
-              }
-            }, 0, 10, TimeUnit.SECONDS);
+    	 mNsdHelper.discoverServices();
+//            ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+//            exec.scheduleAtFixedRate(new Runnable() {
+//              @Override
+//              public void run() {
+//               mNsdHelper.discoverServices();
+//              }
+//            }, 0, 10, TimeUnit.SECONDS);
     }
     
     private class PackageServer {
@@ -229,9 +228,11 @@ public class NsdChatActivity extends Activity {
             	while (!Thread.currentThread().isInterrupted()) {                  
                 	Log.d(TAG, "ServerSocket Created, awaiting connection");
     				Socket connector = mServerSocket.accept();	
-    				Log.d(TAG, "received request.");
-    				PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName(), mNsdHelper);
-    				handler.handle();
+    				ReceiverThread receiver = new ReceiverThread(connector, mNsdHelper.getSelfName());
+    				receiver.start();
+    				//Log.d(TAG, "received request.");
+    				//PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName(), mNsdHelper);
+    				//handler.handle();
             		}
     			} catch (IOException e) {
     				e.printStackTrace();    				
@@ -279,66 +280,35 @@ public class NsdChatActivity extends Activity {
         class RequestMetaThread implements Runnable {
             @Override
             public void run() {
-//            	while(true) {
-//            		try {           			
-//            			NsdServiceInfo next_device = queue.take();
-//            			Log.d(TAG, "send request to device " + next_device.getServiceName());
-//                		setSocket(new Socket(next_device.getHost(), next_device.getPort()));
-//                		//Thread receiveThread = new Thread(new ReceiveThread());
-//                		//receiveThread.run();
-//                		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
-//                				mNsdHelper.getSelfName());
-//                		requst_meta_package.sendPackage(getSocket().getOutputStream());            		
-//                		// TODO need to close the socket?
-//                		//mSocket.close();  
-//                		
-//            		}catch(Exception e) {
-//            			e.printStackTrace();
-//            		}       		  		
-//            	}
-            	try {
-            		while(true) {
-            			for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {          				
-            				if(next_device.getHost() != null && next_device.getPort() != 0) {
-            					Log.d(TAG, "send request to device " + next_device.getServiceName());
-            					Socket socket = new Socket(next_device.getHost(), next_device.getPort());                	    		
-                	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
-                	    				mNsdHelper.getSelfName());
-                	    		requst_meta_package.sendPackage(socket.getOutputStream());  
-            				}
-            	    		    
-                    }
-                    	Thread.sleep(5000);
-            		}        	
-            	}catch(Exception e) {
-            		e.printStackTrace();
+            	while(true) {
+            		try {           			
+            			NsdServiceInfo next_device = queue.take();
+            			Socket socket = new Socket(next_device.getHost(), next_device.getPort());
+            			new ThreadHandler(socket, mNsdHelper.getSelfName()).start();        		
+            		}catch(Exception e) {
+            			e.printStackTrace();
+            		}       		  		
             	}
+//            	try {
+//            		while(true) {
+//            			for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {          				
+//            				if(next_device.getHost() != null && next_device.getPort() != 0) {
+//            					Log.d(TAG, "send request to device " + next_device.getServiceName());
+//            					Socket socket = new Socket(next_device.getHost(), next_device.getPort());                	    		
+//                	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
+//                	    				mNsdHelper.getSelfName());
+//                	    		requst_meta_package.sendPackage(socket.getOutputStream());  
+//            				}
+//            	    		    
+//                    }
+//                    	Thread.sleep(5000);
+//            		}        	
+//            	}catch(Exception e) {
+//            		e.printStackTrace();
+//            	}
         }
         }
         
-        private class ReceiveThread implements Runnable {
-        	 public void run() {
-        		 BufferedReader input;
-             	try {
-             		Socket socket = getSocket();
-             		input = new BufferedReader(new InputStreamReader(
-             				socket.getInputStream()));
-             		while (!Thread.currentThread().isInterrupted()) {                  
-     				//Log.d(TAG, "ReceiveThread received request.");
-     				String messageStr = null;
-                    messageStr = input.readLine();
-                    if(messageStr != null)
-                    	Log.d("ReceiveThread", messageStr);
-     				//ProtocolPackage p = ProtocolPackage.receivePackage(socket.getInputStream());
-     				//Log.d(TAG, p.toString());
-     				//PackageHandler handler = new PackageHandler(socket, mNsdHelper.getSelfName());
-     				//handler.handle();
-             		}
-     			} catch (Exception e) {
-     				e.printStackTrace();
-     			}
-             }
-        }
     	
     }
 }

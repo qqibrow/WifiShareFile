@@ -102,9 +102,9 @@ public class NsdHelper {
             		Log.v(TAG, "device name cannot be resolved.");
             		return;
             	}
-            	else if(device_name.equals(selfName)) {
-            		Log.d(TAG, "not resolve itself");
-            	}          	
+//            	else if(device_name.equals(selfName)) {
+//            		Log.d(TAG, "not resolve itself");
+//            	}          	
             	else if(true || full_service_name.matches("\\(\\d\\)$")) {
             		Log.d(TAG, "Service name: " + device_name + " need to be added or updated.");              		
             		// TODO the resolved service will get updated in the map.
@@ -156,11 +156,12 @@ public class NsdHelper {
             	String device_name = getDeviceNameFromService(serviceInfo);
                 Log.e(TAG, "Resolve Succeeded" +device_name + ".\n"  + serviceInfo);
                 name2NsdInfo.put(device_name, serviceInfo);
-                try {
-                	queue.put(serviceInfo);
-                }catch (InterruptedException e) {
-                    e.printStackTrace();
-                }               
+                Log.d(TAG, device_name + "update succeed.");    
+//                try {
+//                	queue.put(serviceInfo);
+//                }catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }               
             }
         };
     }
