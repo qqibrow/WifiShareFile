@@ -9,9 +9,11 @@ import java.net.SocketException;
 public class ReceiverThread {
 	Socket s;
 	String name;
+	PackageHandler packagehandler = null;
 	public ReceiverThread(Socket s, String name) {
 		this.s = s;
 		this.name = name;
+		packagehandler = new PackageHandler(s, name);
 	}
 	
 	public void start() {
@@ -23,27 +25,37 @@ public class ReceiverThread {
 		public void run() {
 			try {
 				InputStream in = s.getInputStream();
-				OutputStream out = s.getOutputStream();
 				ProtocolPackage p = null;
 				while((p = ProtocolPackage.receivePackage(in)) != null) {
-					System.out.println(name + " received package whose type is " + p.getType());	
-					switch(p.getType()) {
-					case REQUEST_META:
-						ProtocolPackage sendmeta = new ProtocolPackage(PackageType.SEND_META, 
-        	    				name);
-						sendmeta.sendPackage(out);
-						System.out.println(name + " send package whose type is " + sendmeta.getType());	
-						break;
-					case SEND_META:
-						ProtocolPackage sendfile = new ProtocolPackage(PackageType.SEND_FILE, 
-        	    				name);
-						sendfile.sendPackage(out);  
-						System.out.println(name + " send package whose type is " + sendfile.getType());	
-						break;
-					case SEND_FILE:
-						
-						break;
+					if(p.getType().equals(PackageType.END_SESSION)){
+						ProtocolPackage endsession = new ProtocolPackage(PackageType.END_SESSION, 
+		    					name);
+		    			endsession.sendPackage(s.getOutputStream());
+			    		System.out.println(name + " send package whose type is " + endsession.getType());
+						Thread.sleep(300);
+						System.out.println("HandlerServer exit");
+						throw new SocketException();
 					}
+					System.out.println(name + " received package whose type is " + p.getType());
+					packagehandler.handlePackage(p);
+					
+//					switch(p.getType()) {
+//					case REQUEST_META:
+//						ProtocolPackage sendmeta = new ProtocolPackage(PackageType.SEND_META, 
+//        	    				name);
+//						sendmeta.sendPackage(out);
+//						System.out.println(name + " send package whose type is " + sendmeta.getType());	
+//						break;
+//					case SEND_META:
+//						ProtocolPackage sendfile = new ProtocolPackage(PackageType.SEND_FILE, 
+//        	    				name);
+//						sendfile.sendPackage(out);  
+//						System.out.println(name + " send package whose type is " + sendfile.getType());	
+//						break;
+//					case SEND_FILE:
+//						
+//						break;
+//					}
 									
 				}
 			}catch(SocketException e){
