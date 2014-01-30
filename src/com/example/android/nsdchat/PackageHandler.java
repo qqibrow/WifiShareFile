@@ -7,41 +7,29 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import android.net.nsd.NsdServiceInfo;
 import android.util.Log;
 
 public class PackageHandler {	
+	private static final int CACHE_SIZE = 8 * 1024;
+	public static final String TAG = "PackageHandler";
+	
 	private Socket mSocket;
 	private String sender;
-	private PifiFileManager filemanager;
-	private Thread mThread = null;
-	
-	private NsdHelper nsdHelper = null;
-	byte[] buffer = new byte[8 * 1024];
-	
-	 public static final String TAG = "PackageHandler";
-	 
+	private Thread mThread = null;	
+	byte[] buffer = new byte[CACHE_SIZE];
+
 	PackageHandler(Socket socket, String self_name) {
 		mSocket = socket;
 		sender = self_name;
-		filemanager = new PifiFileManager();
-		mThread = new Thread(new PackageHandlerThread());
 	}
 	
 	PackageHandler(Socket socket, String self_name, NsdHelper nsdhelper) {
 		this(socket, self_name);
-		this.nsdHelper = nsdhelper;
 		
 	}
 	
@@ -49,33 +37,21 @@ public class PackageHandler {
 		mThread.start();
 	}
 
-	class PackageHandlerThread implements Runnable {   	
-    	public void run() {
-    		try {
-    			ProtocolPackage p = ProtocolPackage.receivePackage(mSocket.getInputStream());
-    			handlePackage(p);  			
-    		}catch(Exception e) {
-    			e.printStackTrace();
-    		}   		    			
-    	}
-    }
-
 	// Warp the file as the send_meta package and output to OutputStream.
 	// the format of the package will be || packageheader | file ||.
 	private void sendPackagedFile(File file, OutputStream out, PackageType type) {
 		long meta_file_length = file.length();
-		String meta_file_name = file.getName();
+		String file_name = file.getName();
 		
 		ProtocolPackage sendpackage = new ProtocolPackage(type, 
-				sender, meta_file_name, meta_file_length);
+				sender, file_name, meta_file_length);
 		try {
-			//sendpackage.sendPackage(out);
 			ObjectOutputStream obj_os = new ObjectOutputStream(out);
 			obj_os.writeObject(sendpackage);
 			FileInputStream fis = new FileInputStream(file);			
 			writeToStream(new DataOutputStream(out), new DataInputStream(fis));
 			fis.close();
-			
+			System.out.println(sender + " send message" + type + " with file " + file_name);
 		}catch(Exception e) {
 			e.printStackTrace();
 		}	
@@ -88,120 +64,59 @@ public class PackageHandler {
 		
 		switch(p.getType()) {
 		case REQUEST_META:
-				sendPackagedFile(filemanager.getMataFile(), out, PackageType.SEND_META);				
+				File meta_file = FileManager.getInstance().getMataFile();
+				sendPackagedFile(meta_file, out, PackageType.SEND_META);				
 			break;
 		case SEND_META:
-				// Receive the meta file and then calculate the difference and then send file.
-				// Read and store other meta file.
-        		
-				// For testing in two phones, just output its meta file.
-				long length = p.getFile_length();
-				System.out.println("file length is" + length);
-				{
-					File local_dir = filemanager.getDeviceTempDirectory(p.getSender());
-					assert(local_dir.exists());
-					File new_file = new File(local_dir, p.getFile_name());
-					DataInputStream fin = new DataInputStream(in);
-					DataOutputStream fout = new DataOutputStream(new FileOutputStream(new_file));
-					writeToStream(fout, fin, (int)p.getFile_length());
-		
-					BufferedReader inputStream  = new BufferedReader(new InputStreamReader(new FileInputStream(new_file)));
-	        		String line = inputStream.readLine();
-	        		while(line != null) {
-	        			System.out.println(line);
-	        			line = inputStream.readLine();
-	        		}
-	        		inputStream.close();
-				}	
-//        		if(true || byteCount == p.getFile_length()){
-//					// read metadata
-//        			
-//					buf = new byte[(int) file_length];
-//					int bytesRead = socket_in.read(buf, 0, buf.length);
-//					if(bytesRead != buf.length) {
-//						throw new Exception("The length readed is not equal to the actual file length.");
-//					}
-//					Log.v("RECEIVE_META_FILE", buf.toString());	
-//        		}        		
-//        		else{
-//        			throw new Exception ("Corrupted file.");
-//        		}
-        		
-        		byte[] buf = new byte[(int)p.getFile_length()];
-    			File[] files = filemanager.getDelta(buf);
-    			
-    			for(File file : files) {
-    				sendPackagedFile(file, out, PackageType.SEND_FILE);
-    				Log.d("SEND_META", "send file " + file.getName() + " Successfully.");
-    			}
-    			
-    			// Send end of session package.
-    			ProtocolPackage endsession = new ProtocolPackage(PackageType.END_SESSION, 
-    					sender);
-    			endsession.sendPackage(out);
-	    		System.out.println(sender + " send package whose type is " + endsession.getType());
+			// Receive the meta file and then calculate the difference and then send file.
+			// Read and store other meta file.
+    		
+			// For testing in two phones, just output its meta file.
+			long length = p.getFile_length();
+			System.out.println("file length is" + length);
+			{
+				File local_dir = FileManager.getInstance().getDeviceTempDirectory(p.getSender());
+				assert(local_dir.exists());
+				File new_file = new File(local_dir, p.getFile_name());
+				DataInputStream fin = new DataInputStream(in);
+				DataOutputStream fout = new DataOutputStream(new FileOutputStream(new_file));
+				writeToStream(fout, fin, (int)p.getFile_length());
+	
+				BufferedReader inputStream  = new BufferedReader(new InputStreamReader(new FileInputStream(new_file)));
+        		String line = inputStream.readLine();
+        		while(line != null) {
+        			System.out.println(line);
+        			line = inputStream.readLine();
+        		}
+        		inputStream.close();
+			}
+			///////////////End of testing //////////////////////////////////
+				
+    		byte[] buf = new byte[(int)p.getFile_length()];
+			File[] files = FileManager.getInstance().getDelta(buf);
+			
+			for(File file : files) {
+				sendPackagedFile(file, out, PackageType.SEND_FILE);
+			}
+			
+			// Send end of session package.
+			new ProtocolPackage(PackageType.END_SESSION, sender).sendPackage(out);
 			break;
 		case SEND_FILE:
 			Log.d(TAG, "handle send file message");
 			// Just receive the file and store the file in (trasferDirectory + phoneId) directory.
-			File local_dir = filemanager.getDeviceTempDirectory(p.getSender());
+			File local_dir = FileManager.getInstance().getDeviceTempDirectory(p.getSender());
 			assert(local_dir.exists());
 			File new_file = new File(local_dir, p.getFile_name());
-			try {
-				/*BufferedReader inputStream   = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-        		String line = inputStream.readLine();
-        		while(line != null) {
-        			Log.d("SEND_FILE", line);
-        			line = inputStream.readLine();
-        		}*/
-				DataInputStream fin = new DataInputStream(in);
-				DataOutputStream fout = new DataOutputStream(new FileOutputStream(new_file));
-				writeToStream(fout, fin, (int)p.getFile_length());
-				Log.d("SEND_FILE", "Got file " + p.getFile_name() + " successfully.");
-			}catch(Exception e) {
-				e.printStackTrace();
-			}		
+			
+			DataInputStream fin = new DataInputStream(in);
+			DataOutputStream fout = new DataOutputStream(new FileOutputStream(new_file));
+			writeToStream(fout, fin, (int)p.getFile_length());				
 			break;
+		default:
+			throw new Exception("Error go to default. Every case should be handled");
 		}
 	}
-	
-//	private List<String> getDelta(byte[] bytes, File metaFile){
-//		// TODO This code runs a risk of running into exception if the meta data
-//		// file size is too big. Needs to fix this issue later on
-//		List<Video> sendTo = new List<Video>();
-//		FileInputStream fin = new FileInputStream(metaFile);
-//		
-//		//create copies of actual list
-//		for(Video vid : Videos.parseFrom(fin).getVideoList()){
-//			sendTo.add(vid);
-//		}
-//		fin.close();
-//		
-//		List<Video> recv = new ArrayList<Video>();
-//		for(Video vid : Videos.parseFrom(bytes).getVideoList()){
-//			recv.add(vid);
-//		}
-//		
-//		fin = new FileInputStream(metaFile);
-//		Iterator<Video> local = Videos.parseFrom(fin).getVideoList().iterator();
-//		fin.close();
-//
-//		// for each local entry
-//		while (local.hasNext()) {
-//			Iterator<Video> remote = Videos.parseFrom(bytes).getVideoList().iterator();
-//			Video v = local.next();
-//			// for each remote entry
-//			while (remote.hasNext()) {
-//				Video rem = remote.next();
-//				// if local entry matches remote entry
-//				if (v.getFilename().equals(rem.getFilename())) {
-//					sendTo.remove(v);
-//					recv.remove(rem);
-//				}
-//			}
-//		}
-//		return sendTo;
-//	}
 	
 	private void writeToStream(DataOutputStream out, DataInputStream in) {
 		int readed = 0;
@@ -247,21 +162,4 @@ public class PackageHandler {
 			e.printStackTrace();
 		}  
 	}
-
-	 public synchronized void setSocket(Socket socket) {
-         Log.d("PackageHandler", "setSocket being called.");
-         if (socket == null) {
-             Log.d("PackageHandler", "Setting a null socket.");
-         }
-         if (mSocket != null) {
-             if (mSocket.isConnected()) {
-                 try {
-                     mSocket.close();
-                 } catch (IOException e) {
-                     e.printStackTrace();
-                 }
-             }
-         }
-         mSocket = socket;
-     }
 }

@@ -91,55 +91,17 @@ public class NsdChatActivity extends Activity {
         mNsdHelper.discoverServices();
     }
     
-    private synchronized void setSocket(Socket socket) {
-        Log.d(TAG, "setSocket being called.");
-        if (socket == null) {
-            Log.d(TAG, "Setting a null socket.");
-        }
-        if (mSocket != null) {
-            if (mSocket.isConnected()) {
-                try {
-                    mSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        mSocket = socket;
-    }
-	
-    private Socket getSocket() {
-        return mSocket;
-    }
-    
-
     public void clickConnect(View v) {
-    	new Thread(new Runnable() {
-
-    		@Override
-    		public void run() {
-    			try {           			
-    				for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {
-    					if(next_device.getHost() != null && next_device.getPort() != 0) {
-    						Log.d(TAG, "put device into queue");
-    						queue.put(next_device);
-    				//Log.d(TAG, "send request to device " + next_device.getServiceName());
-    	    		//Socket socket = new Socket(next_device.getHost(), next_device.getPort());
-    	    		//Thread receiveThread = new Thread(new ReceiveThread());
-    	    		//receiveThread.run();
-    	    		
-    					}
-    				}
-    			}catch(Exception e) {
-    				e.printStackTrace();
-    			}
-    		}
-    		
-    	}).start();
-    	
-    	
-    	
-    	
+    	try {
+	    	for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {
+				if(next_device.getHost() != null && next_device.getPort() != 0) {
+					Log.d(TAG, "put device into queue");
+					queue.put(next_device);
+				}
+			}
+    	}catch(Exception e) {
+    		e.printStackTrace();
+    	}
     }
     
     public void clickDisconnect(View w) {
@@ -230,10 +192,7 @@ public class NsdChatActivity extends Activity {
     				Socket connector = mServerSocket.accept();	
     				Receiver receiver = new Receiver(connector, mNsdHelper.getSelfName());
     				receiver.start();
-    				//Log.d(TAG, "received request.");
-    				//PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName(), mNsdHelper);
-    				//handler.handle();
-            		}
+				}
     			} catch (IOException e) {
     				e.printStackTrace();    				
     			}
@@ -244,7 +203,6 @@ public class NsdChatActivity extends Activity {
     
     private class MetaRequester {
     	private BlockingQueue<NsdServiceInfo> queue = null;
-    	private Socket mSocket = null;
     	private Thread mThread = null;
     	public MetaRequester(BlockingQueue<NsdServiceInfo> q) {
     		queue = q;
@@ -256,56 +214,18 @@ public class NsdChatActivity extends Activity {
             mThread.interrupt();
         }
     	
-    	private synchronized void setSocket(Socket socket) {
-            Log.d(TAG, "setSocket being called.");
-            if (socket == null) {
-                Log.d(TAG, "Setting a null socket.");
-            }
-            if (mSocket != null) {
-                if (mSocket.isConnected()) {
-                    try {
-                        mSocket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            mSocket = socket;
-        }
-    	
-        private Socket getSocket() {
-            return mSocket;
-        }
-        
-        class RequestMetaThread implements Runnable {
+    	class RequestMetaThread implements Runnable {
             @Override
             public void run() {
-            	while(true) {
-            		try {           			
+            	try { 
+            	while(!Thread.currentThread().isInterrupted()) {          			
             			NsdServiceInfo next_device = queue.take();
             			Socket socket = new Socket(next_device.getHost(), next_device.getPort());
             			new Sender(socket, mNsdHelper.getSelfName()).start();        		
-            		}catch(Exception e) {
-            			e.printStackTrace();
-            		}       		  		
-            	}
-//            	try {
-//            		while(true) {
-//            			for(NsdServiceInfo next_device : mNsdHelper.name2NsdInfo.values()) {          				
-//            				if(next_device.getHost() != null && next_device.getPort() != 0) {
-//            					Log.d(TAG, "send request to device " + next_device.getServiceName());
-//            					Socket socket = new Socket(next_device.getHost(), next_device.getPort());                	    		
-//                	    		ProtocolPackage requst_meta_package = new ProtocolPackage(PackageType.REQUEST_META, 
-//                	    				mNsdHelper.getSelfName());
-//                	    		requst_meta_package.sendPackage(socket.getOutputStream());  
-//            				}
-//            	    		    
-//                    }
-//                    	Thread.sleep(5000);
-//            		}        	
-//            	}catch(Exception e) {
-//            		e.printStackTrace();
-//            	}
+            		}     		  		
+            	}catch(Exception e) {
+        			e.printStackTrace();
+        		}  
         }
         }
         

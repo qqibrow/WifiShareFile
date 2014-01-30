@@ -5,17 +5,21 @@ import java.util.List;
 
 import android.os.Environment;
 
-public class PifiFileManager {
-	
+public class FileManager {
 	String external_root_path;
 	String app_root_path;
-	String meta_file_path;
+	String meta_file_path;	
+	private static final FileManager INSTANCE = new FileManager();
 	
-	public PifiFileManager() {
+	public static FileManager getInstance() {
+		return INSTANCE;
+	}
+	
+	private FileManager() {
 		this("Pifitest", "meta.txt");
 	}
 
-	public PifiFileManager(String approot, String metafilename) {
+	public FileManager(String approot, String metafilename) {
 		external_root_path = Environment.getExternalStorageDirectory().getPath();
 		app_root_path = appendPath(external_root_path, approot);
 		meta_file_path = appendPath(app_root_path, metafilename);
