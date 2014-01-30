@@ -20,16 +20,12 @@ public class ProtocolPackage implements java.io.Serializable{
 	private static final long serialVersionUID = 7526472295622776147L;
 	
 	public ProtocolPackage() {
-		sender = "";
-		file_name = "";
 	}
 	
 	public ProtocolPackage(PackageType type, String sender) {
 		super();
 		this.type = type;
 		this.sender = sender;
-		file_name = "";
-		//file_name = "EMPTYFILE";
 	}
 	
 	public ProtocolPackage(PackageType type, String sender, String file_name, long file_length){
@@ -42,38 +38,13 @@ public class ProtocolPackage implements java.io.Serializable{
 		return sender;
 	}
 	
-	public void sendPackage(OutputStream out) {
-		try {
+	public void sendPackage(OutputStream out) throws Exception {
 			ObjectOutputStream obj_os = new ObjectOutputStream(out);
 			obj_os.writeObject(this);
 			obj_os.flush();
-			
-			switch(type) {
-			case REQUEST_META:
-				break;
-			case SEND_META:
-			case SEND_FILE:
-//				byte[] buffer = new byte[8 * 1024];
-//				File file = new File(file_name);
-//				FileInputStream fis = new FileInputStream(file.toString());   
-//        		DataInputStream bis = new DataInputStream(fis);
-//        		DataOutputStream socket_data_os = new DataOutputStream(out);  
-//        		int readed = 0;
-//        		while(readed != -1) {
-//        			readed = bis.read(buffer);
-//        			socket_data_os.write(buffer, 0, readed);
-//        			socket_data_os.flush();
-//        		}
-//        		bis.close();
-				break;
-			}
-		}catch(Exception e) {
-			e.printStackTrace();
-		}
-	
 	}
 	
-	public  static ProtocolPackage receivePackage(InputStream in) throws Exception{
+	public static ProtocolPackage receivePackage(InputStream in) throws Exception{
 		ObjectInputStream obj_in = new ObjectInputStream(in);
 		ProtocolPackage other = (ProtocolPackage)obj_in.readObject();
 		return other;	

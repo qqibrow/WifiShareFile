@@ -228,7 +228,7 @@ public class NsdChatActivity extends Activity {
             	while (!Thread.currentThread().isInterrupted()) {                  
                 	Log.d(TAG, "ServerSocket Created, awaiting connection");
     				Socket connector = mServerSocket.accept();	
-    				ReceiverThread receiver = new ReceiverThread(connector, mNsdHelper.getSelfName());
+    				Receiver receiver = new Receiver(connector, mNsdHelper.getSelfName());
     				receiver.start();
     				//Log.d(TAG, "received request.");
     				//PackageHandler handler = new PackageHandler(connector, mNsdHelper.getSelfName(), mNsdHelper);
@@ -284,7 +284,7 @@ public class NsdChatActivity extends Activity {
             		try {           			
             			NsdServiceInfo next_device = queue.take();
             			Socket socket = new Socket(next_device.getHost(), next_device.getPort());
-            			new ThreadHandler(socket, mNsdHelper.getSelfName()).start();        		
+            			new Sender(socket, mNsdHelper.getSelfName()).start();        		
             		}catch(Exception e) {
             			e.printStackTrace();
             		}       		  		
