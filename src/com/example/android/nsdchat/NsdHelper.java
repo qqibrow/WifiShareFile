@@ -102,9 +102,9 @@ public class NsdHelper {
             		Log.v(TAG, "device name cannot be resolved.");
             		return;
             	}
-//            	else if(device_name.equals(selfName)) {
-//            		Log.d(TAG, "not resolve itself");
-//            	}          	
+            	else if(device_name.equals(selfName)) {
+            		Log.d(TAG, "not resolve itself");
+            	}          	
             	else if(true || full_service_name.matches("\\(\\d\\)$")) {
             		Log.d(TAG, "Service name: " + device_name + " need to be added or updated.");              		
             		// TODO the resolved service will get updated in the map.

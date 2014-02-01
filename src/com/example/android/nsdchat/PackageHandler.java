@@ -13,6 +13,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import android.util.Log;
+import android.widget.Toast;
 
 public class PackageHandler {	
 	private static final int CACHE_SIZE = 8 * 1024;
@@ -51,7 +52,10 @@ public class PackageHandler {
 			FileInputStream fis = new FileInputStream(file);			
 			writeToStream(new DataOutputStream(out), new DataInputStream(fis));
 			fis.close();
-			System.out.println(sender + " send message" + type + " with file " + file_name);
+			String result = sender + " send message" + type + " with file " + file_name;
+			System.out.println(result);
+//			Toast.makeText(getApplicationContext(), result, 
+//					   Toast.LENGTH_LONG).show();
 		}catch(Exception e) {
 			e.printStackTrace();
 		}	
